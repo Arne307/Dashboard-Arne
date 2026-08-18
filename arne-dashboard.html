@@ -1,0 +1,1840 @@
+<!--
+  PROJEKT: Arne persönliches Dashboard (Schule, Training, Termine, Wetter)
+  DATEI:   arne-dashboard.html
+  STAND:   17.08.2026 — Fassung 2
+  KONTEXT: Single-File PWA, Vanilla HTML/CSS/JS, kein Framework, kein Server,
+           Speicherung nur per localStorage, DSGVO-konform, einzige externe
+           Verbindung ist die Open-Meteo Wetter-API (ohne API-Key).
+
+  NEU IN DIESER FASSUNG:
+   - ICS-Kalenderimport in den Einstellungen. Liest die Datei auf dem Gerät,
+     löst Serientermine auf (FREQ/INTERVAL/COUNT/UNTIL/BYDAY, EXDATE),
+     rechnet Z-Zeiten in Ortszeit um, versteht DURATION und ganztägige
+     Termine. Übernimmt per Schlüssel aus Kalender + UID + Datum, damit ein
+     zweiter Import derselben Datei nichts doppelt anlegt. Bestehende und
+     selbst angelegte Termine werden nie gelöscht. Importierte Kalender sind
+     einzeln wieder entfernbar.
+   - Mitternachtswechsel: zieht die Ansicht nur noch mit, wenn sie auf "heute"
+     stand; bewusst geöffnete andere Tage bleiben stehen. Zusätzlich über
+     focus, pageshow und online abgesichert.
+   - Behoben: Beschriftung zusammengefasster Doppel- und Dreifachstunden.
+   - Behoben: events/checks hingen als geteilte Objekte am defaults-Objekt.
+   - Wetter wird zwischengespeichert, ist also offline und beim Start sofort da;
+     der heutige Tag wird über das Datum bestimmt statt über Index 0.
+   - Abhak-Verlauf wird auf 120 Tage begrenzt.
+   - Touchflächen auf mindestens 44 px gebracht (Abhaken, Tagesnavigation,
+     Löschen).
+
+  NEU IN FASSUNG 3 — Tagesablauf nach Arnes Angaben:
+   - Heimkunft mit dem Bus hinterlegt: Mo 16:00, Di 14:20, Mi 16:00,
+     Do 14:20, Fr 15:20. Vorher wird nichts eingeplant.
+   - Nachhilfe fest: Montag 17–18 Uhr, Mittwoch 18–19 Uhr. Eigene Farbe.
+   - Abendgrenze 20:30. Nach dieser Zeit steht kein Training und kein
+     Lernblock mehr im Plan, nur noch Abendroutine.
+   - Trainingsplan neu verteilt: vier eigene Trainingstage (Di Beine,
+     Fr Push, Sa 10-km-Lauf, So Pull) plus der Schulsport am Donnerstag
+     als fünfter Bewegungstag. Montag und Mittwoch sind Ruhetage mit
+     reinen Dehnübungen, weil dort Bus und Nachhilfe den Tag füllen.
+   - Profil auf "Sport 2 (Fre, S1)" gesetzt, damit Donnerstag die vier
+     Stunden Sport (3.–6.) stimmen. In den Einstellungen umstellbar.
+   - Lernplan: jeden Tag Lernzeit, immer für den nächsten Schultag.
+     Weil jedes Fach irgendwann im Stundenplan steht, ist damit über die
+     Woche jedes Fach abgedeckt — automatisch, auch nach einer Änderung
+     der Kurswahl. Sportstunden werden ausgenommen. Eigener Kasten mit
+     Fächern zum Abhaken und der Minutenverteilung.
+   - Legende unter dem Tagesplan, weil es jetzt sieben Kategorien gibt.
+   - Behoben: die Regel für die Pfeilknöpfe hat auch den Heute-Knopf auf
+     44 px Breite gezwungen; die Tagesnavigation lief seitlich über.
+-->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12100E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Arne Dashboard">
+<title>Arne · Dashboard</title>
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Arne%20Dashboard%22%2C%22short_name%22%3A%22Dashboard%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%2312100E%22%2C%22theme_color%22%3A%22%2312100E%22%7D">
+<style>
+:root{
+  --bg:#12100E;
+  --panel:#1B1815;
+  --panel-2:#232019;
+  --line:#332E27;
+  --ink:#F2EDE6;
+  --ink-dim:#A79E92;
+  --ink-faint:#6E655B;
+  --amber:#F0932B;
+  --amber-soft:#FFC46B;
+  --ember:#C2410C;
+  --go:#5FBF7F;
+  --warn:#E2B33C;
+  --stop:#D65A4A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--ink)}
+body{
+  font-family:"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;line-height:1.45;
+  padding:0 0 96px;
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
+  overflow-x:hidden;
+}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- Kopf ---------- */
+header{
+  position:relative;padding:calc(env(safe-area-inset-top) + 22px) 20px 18px;
+  background:
+    radial-gradient(120% 90% at 88% -10%, rgba(240,147,43,.22), transparent 60%),
+    linear-gradient(180deg,#191512,var(--bg));
+  border-bottom:1px solid var(--line);
+}
+.eyebrow{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--amber);font-weight:600;
+}
+h1{font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.subline{color:var(--ink-dim);font-size:14px;margin-top:6px}
+.clock{
+  position:absolute;top:calc(env(safe-area-inset-top) + 22px);right:20px;
+  font-size:26px;font-weight:600;letter-spacing:-.01em;color:var(--ink);
+}
+.clock small{display:block;font-size:10px;letter-spacing:.16em;color:var(--ink-faint);text-align:right;font-weight:500}
+
+/* ---------- Bausteine ---------- */
+.wrap{padding:0 16px}
+section{margin-top:22px}
+.sec-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:0 4px 10px;
+}
+.sec-head h2{
+  font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-dim);font-weight:600;
+}
+.sec-head .meta{font-size:12px;color:var(--ink-faint)}
+
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  overflow:hidden;
+}
+
+/* ---------- Wetterkasten ---------- */
+.wx-top{display:flex;gap:16px;align-items:center;padding:16px 18px}
+.wx-temp{font-size:42px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.wx-temp span{font-size:20px;color:var(--ink-dim);font-weight:500}
+.wx-info{flex:1;min-width:0}
+.wx-desc{font-size:15px}
+.wx-sub{font-size:13px;color:var(--ink-dim);margin-top:2px}
+
+.moped{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 18px;border-top:1px solid var(--line);background:var(--panel-2);
+}
+.lamp{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 4px rgba(255,255,255,.05)}
+.lamp.go{background:var(--go);box-shadow:0 0 0 4px rgba(95,191,127,.16)}
+.lamp.warn{background:var(--warn);box-shadow:0 0 0 4px rgba(226,179,60,.16)}
+.lamp.stop{background:var(--stop);box-shadow:0 0 0 4px rgba(214,90,74,.16)}
+.moped-txt{font-size:14px;flex:1}
+.moped-txt b{font-weight:600}
+.moped-txt em{display:block;font-style:normal;font-size:12.5px;color:var(--ink-dim);margin-top:1px}
+
+.wx-week{display:flex;overflow-x:auto;border-top:1px solid var(--line);scrollbar-width:none}
+.wx-week::-webkit-scrollbar{display:none}
+.wx-day{
+  flex:1 0 62px;text-align:center;padding:12px 6px 14px;
+  border-right:1px solid var(--line);
+}
+.wx-day:last-child{border-right:0}
+.wx-day.is-today{background:rgba(240,147,43,.08)}
+.wx-day .d{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+.wx-day.is-today .d{color:var(--amber)}
+.wx-day .ic{font-size:20px;margin:5px 0 4px}
+.wx-day .t{font-size:13px;font-weight:600}
+.wx-day .t small{color:var(--ink-faint);font-weight:400}
+.wx-day .r{font-size:11px;color:#7FA8C9;margin-top:3px}
+.wx-day .dot{width:6px;height:6px;border-radius:50%;margin:6px auto 0}
+
+/* ---------- Tagesnavigation ---------- */
+.daynav{display:flex;align-items:center;gap:8px;padding:0 4px 12px}
+/* Nur die Pfeile sind quadratisch — der Heute-Knopf braucht seine Textbreite */
+.daynav button:not(.today-btn){
+  width:44px;height:44px;flex:none;border-radius:12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);font-size:19px;cursor:pointer;
+}
+.daynav button:active{background:var(--panel-2)}
+.daynav .label{flex:1 1 auto;min-width:0;text-align:center}
+.daynav .label b,.daynav .label span{
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.daynav .label b{font-size:17px;font-weight:600}
+.daynav .label span{font-size:12px;color:var(--ink-faint)}
+.today-btn{
+  flex:none;white-space:nowrap;
+  border:1px solid var(--line);background:transparent;color:var(--amber);
+  font-size:12px;padding:0 13px;min-height:44px;border-radius:10px;cursor:pointer;letter-spacing:.04em;
+}
+
+/* ---------- Zeitstrahl ---------- */
+.timeline{position:relative;padding:6px 0 10px}
+.tl-now{
+  position:absolute;left:0;right:0;height:0;border-top:1.5px solid var(--amber);
+  z-index:3;pointer-events:none;
+}
+.tl-now::before{
+  content:"";position:absolute;left:52px;top:-4px;width:7px;height:7px;
+  border-radius:50%;background:var(--amber);
+}
+.slot{display:flex;gap:0;border-bottom:1px solid var(--line)}
+.slot:last-child{border-bottom:0}
+.slot .time{
+  flex:none;width:58px;padding:12px 0 12px 14px;
+  font-size:12px;color:var(--ink-faint);
+}
+.slot .body{flex:1;padding:11px 16px 12px 4px;min-width:0}
+.slot.free .body{padding-top:9px;padding-bottom:9px}
+.entry{display:flex;align-items:flex-start;gap:10px}
+.tag{
+  flex:none;width:3px;align-self:stretch;border-radius:2px;background:var(--ink-faint);
+  min-height:20px;
+}
+.tag.schule{background:#6FA8DC}
+.tag.training{background:var(--amber)}
+.tag.routine{background:#8A7F72}
+.tag.termin{background:#B77BD6}
+.tag.lauf{background:var(--ember)}
+.tag.lernen{background:#4DB6A0}
+.tag.nachhilfe{background:#3D7FD6}
+.entry .txt{min-width:0;flex:1}
+.entry .txt b{font-weight:600;font-size:15px;display:block}
+.entry .txt span{font-size:12.5px;color:var(--ink-dim);display:block;margin-top:1px}
+.entry .kind{
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-faint);margin-top:3px;display:block;
+}
+.slot.free .body .txt b{color:var(--ink-faint);font-weight:400;font-size:13.5px}
+/* Hitfläche 44 px, das sichtbare Kästchen darin 24 px */
+.chk{
+  flex:none;width:44px;height:44px;border:0;background:transparent;padding:0;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;margin:-10px -10px -10px 0;
+  border-radius:12px;
+}
+.chk::before{
+  content:attr(data-mark);
+  width:24px;height:24px;border-radius:8px;border:1.5px solid var(--line);
+  color:var(--bg);font-size:13px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.chk.on::before{background:var(--amber);border-color:var(--amber)}
+.done .txt b{text-decoration:line-through;color:var(--ink-faint)}
+
+/* ---------- Legende ---------- */
+.legend{
+  display:flex;flex-wrap:wrap;gap:6px 14px;
+  padding:11px 6px 0;font-size:11.5px;color:var(--ink-faint);
+}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:3px;height:12px;border-radius:2px;flex:none;align-self:center}
+
+/* ---------- Training und Lernen ---------- */
+.tr-head{padding:15px 18px 13px;border-bottom:1px solid var(--line)}
+.tr-head b{font-size:17px;font-weight:600;display:block}
+.tr-head span{font-size:12.5px;color:var(--ink-dim)}
+.ex{display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--line)}
+.ex:last-child{border-bottom:0}
+.ex .txt{flex:1;min-width:0}
+.ex .txt b{font-size:14.5px;font-weight:500;display:block}
+.ex .txt span{font-size:12px;color:var(--ink-faint)}
+.ex .sets{font-size:13px;color:var(--amber-soft);flex:none}
+.ex.done .txt b{text-decoration:line-through;color:var(--ink-faint)}
+.badge{
+  display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 6px;border-radius:5px;margin-right:6px;vertical-align:1px;
+}
+.badge.skill{background:rgba(183,123,214,.18);color:#C9A0E0}
+.badge.bauch{background:rgba(111,168,220,.18);color:#8FBEE8}
+.badge.reha{background:rgba(95,191,127,.16);color:#7FCE97}
+
+/* ---------- Termine ---------- */
+.ev{display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line);align-items:flex-start}
+.ev:last-child{border-bottom:0}
+.ev .when{flex:none;width:64px;font-size:12px;color:var(--amber);padding-top:1px}
+.ev .txt{flex:1;min-width:0}
+.ev .txt b{font-size:15px;font-weight:600;display:block}
+.ev .txt span{font-size:12.5px;color:var(--ink-dim)}
+.ev .del{
+  flex:none;background:none;border:0;color:var(--ink-faint);font-size:20px;
+  cursor:pointer;line-height:1;width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;margin:-10px -12px -10px 0;
+}
+.ev .del:active{background:var(--panel-2)}
+.ev .src{
+  display:inline-block;font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:#B98FD0;background:rgba(183,123,214,.13);border:1px solid rgba(183,123,214,.22);
+  border-radius:4px;padding:0 4px;margin-left:7px;vertical-align:1.5px;
+}
+.empty{padding:22px 18px;color:var(--ink-faint);font-size:14px;text-align:center}
+
+form.add{padding:14px 16px;border-top:1px solid var(--line);background:var(--panel-2)}
+.row{display:flex;gap:8px;margin-bottom:8px}
+input,select,textarea{
+  width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);
+  border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--amber);outline-offset:1px;border-color:transparent}
+button.primary{
+  width:100%;background:var(--amber);color:#1A1206;border:0;border-radius:10px;
+  padding:12px;min-height:48px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;
+}
+button.primary:active{background:var(--amber-soft)}
+
+/* ---------- Einstellungen ---------- */
+details.settings{margin-top:22px}
+details.settings summary{
+  list-style:none;cursor:pointer;padding:14px 18px;font-size:13px;color:var(--ink-dim);
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+details.settings summary::-webkit-details-marker{display:none}
+details[open].settings summary{border-radius:14px 14px 0 0;border-bottom:0;color:var(--amber)}
+.settings-body{
+  background:var(--panel);border:1px solid var(--line);border-top:0;
+  border-radius:0 0 14px 14px;padding:16px 18px 20px;
+}
+.settings-body label{display:block;font-size:12px;color:var(--ink-faint);margin:14px 0 6px;letter-spacing:.06em;text-transform:uppercase}
+.settings-body label:first-child{margin-top:0}
+.hint{font-size:12.5px;color:var(--ink-faint);margin-top:14px;line-height:1.5}
+
+/* ---------- Kalenderimport ---------- */
+.imp-note{font-size:12.5px;color:var(--ink-faint);line-height:1.5;margin:0 0 12px}
+button.secondary{
+  width:100%;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+  border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;
+  font-family:inherit;min-height:48px;
+}
+button.secondary:active{background:var(--line)}
+button.secondary[disabled]{opacity:.55;cursor:default}
+.imp-report{
+  margin-top:12px;background:var(--bg);border:1px solid var(--line);
+  border-radius:10px;padding:12px 14px;font-size:13px;
+}
+.imp-report dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0}
+.imp-report dt{color:var(--ink-faint)}
+.imp-report dd{margin:0;color:var(--ink)}
+.imp-report .warn-line{color:var(--stop);font-weight:600}
+.imp-report p{margin:9px 0 0;padding-top:9px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:12px;line-height:1.5}
+.src-list{list-style:none;margin:12px 0 0;padding:0}
+.src-list li{
+  display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--line);min-height:48px;
+}
+.src-list li:last-child{border-bottom:0}
+.src-list .txt{flex:1;min-width:0}
+.src-list .txt b{display:block;font-size:14px;font-weight:600}
+.src-list .txt span{font-size:12px;color:var(--ink-faint)}
+.src-list button{
+  flex:none;background:none;border:1px solid #4A2A28;color:var(--stop);
+  border-radius:9px;min-height:44px;padding:0 14px;font-size:13px;
+  cursor:pointer;font-family:inherit;
+}
+
+/* ---------- Hinweisstreifen ---------- */
+.toast{
+  position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(8px);z-index:60;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+  border-radius:12px;padding:12px 18px;font-size:13.5px;
+  box-shadow:0 8px 24px rgba(0,0,0,.55);
+  max-width:calc(100% - 32px);text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
+}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+footer{padding:26px 20px 10px;text-align:center;font-size:11px;color:var(--ink-faint);letter-spacing:.08em}
+
+@media (prefers-reduced-motion:no-preference){
+  .card,section{animation:rise .45s cubic-bezier(.2,.7,.3,1) both}
+  section:nth-child(2){animation-delay:.04s}
+  section:nth-child(3){animation-delay:.08s}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow" id="eyebrow">Dashboard</div>
+  <h1 id="greeting">Guten Tag</h1>
+  <div class="subline" id="dateline">—</div>
+  <div class="clock mono" id="clock">--:--<small>Ortszeit</small></div>
+</header>
+
+<div class="wrap">
+
+  <!-- Wetter -->
+  <section>
+    <div class="sec-head"><h2>Wetter &amp; Moped</h2><span class="meta" id="wx-place">Wurzen</span></div>
+    <div class="card">
+      <div class="wx-top">
+        <div class="wx-temp mono" id="wx-now">–<span>°</span></div>
+        <div class="wx-info">
+          <div class="wx-desc" id="wx-desc">Wetter wird geladen …</div>
+          <div class="wx-sub" id="wx-sub">&nbsp;</div>
+        </div>
+      </div>
+      <div class="moped">
+        <span class="lamp" id="moped-lamp"></span>
+        <div class="moped-txt" id="moped-txt"><b>Moped-Check läuft</b><em>&nbsp;</em></div>
+      </div>
+      <div class="wx-week" id="wx-week"></div>
+    </div>
+  </section>
+
+  <!-- Tagesplan -->
+  <section>
+    <div class="sec-head"><h2>Tagesplan</h2><span class="meta" id="plan-meta"></span></div>
+    <div class="daynav">
+      <button id="prev" aria-label="Vorheriger Tag">‹</button>
+      <div class="label"><b id="nav-day">—</b><span id="nav-date">—</span></div>
+      <button id="next" aria-label="Nächster Tag">›</button>
+      <button class="today-btn" id="jump-today">Heute</button>
+    </div>
+    <div class="card"><div class="timeline" id="timeline"></div></div>
+    <div class="legend" id="legend">
+      <span><i class="tag schule"></i>Schule</span>
+      <span><i class="tag lernen"></i>Lernen</span>
+      <span><i class="tag nachhilfe"></i>Nachhilfe</span>
+      <span><i class="tag training"></i>Training</span>
+      <span><i class="tag lauf"></i>Lauf</span>
+      <span><i class="tag termin"></i>Termine</span>
+      <span><i class="tag routine"></i>Ablauf</span>
+    </div>
+  </section>
+
+  <!-- Lernen -->
+  <section>
+    <div class="sec-head"><h2>Lernen</h2><span class="meta" id="lern-meta"></span></div>
+    <div class="card" id="lernplan"></div>
+  </section>
+
+  <!-- Training -->
+  <section>
+    <div class="sec-head"><h2>Training</h2><span class="meta" id="tr-meta"></span></div>
+    <div class="card" id="training"></div>
+  </section>
+
+  <!-- Termine -->
+  <section>
+    <div class="sec-head"><h2>Termine</h2><span class="meta">nächste 14 Tage</span></div>
+    <div class="card">
+      <div id="events"></div>
+      <form class="add" id="ev-form">
+        <input id="ev-title" placeholder="Was steht an?" required>
+        <div class="row" style="margin-top:8px">
+          <input id="ev-date" type="date" required>
+          <input id="ev-time" type="time">
+        </div>
+        <input id="ev-place" placeholder="Ort (optional)" style="margin-bottom:8px">
+        <button class="primary" type="submit">Termin hinzufügen</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Einstellungen -->
+  <details class="settings">
+    <summary>Einstellungen &amp; Kurswahl</summary>
+    <div class="settings-body">
+      <label>Kalender importieren</label>
+      <p class="imp-note">
+        Eine <b>.ics</b>-Datei einlesen. Bestehende Termine bleiben erhalten – gleiche Termine
+        werden aktualisiert, nichts wird gelöscht. Die Datei wird nur auf dem Gerät gelesen
+        und nirgendwohin geschickt.
+      </p>
+      <input type="file" id="ics-file" accept=".ics,.ical,.ifb,text/calendar"
+             style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+      <button type="button" class="secondary" id="ics-pick">ICS-Datei wählen</button>
+      <div class="imp-report" id="ics-report" hidden></div>
+      <ul class="src-list" id="ics-sources"></ul>
+
+      <label for="s-name">Anzeigename</label>
+      <input id="s-name" placeholder="Arne">
+
+      <label for="s-lang">Sprache (Di 3./4., Fr 4.)</label>
+      <select id="s-lang">
+        <option value="LA1|Latein|DrKu|W09">Latein — DrKu, W09</option>
+        <option value="RU1|Russisch|Stei|W10">Russisch — Stei, W10</option>
+        <option value="SPA1|Spanisch 1|Nie|W06">Spanisch 1 — Nie, W06</option>
+        <option value="SPA2|Spanisch 2|Kra|W11">Spanisch 2 — Kra, W11</option>
+        <option value="SPA3|Spanisch 3|SchH|W13">Spanisch 3 — SchH, W13</option>
+      </select>
+
+      <label for="s-eth">Ethik / Religion (Do 1./2.)</label>
+      <select id="s-eth">
+        <option value="ETH1|Ethik 1|Pfi|W18">Ethik 1 — Pfi, W18</option>
+        <option value="ETH2|Ethik 2|Tob|W07">Ethik 2 — Tob, W07</option>
+        <option value="ETH3|Ethik 3|Schn|W11">Ethik 3 — Schn, W11</option>
+        <option value="ETH4|Ethik 4|Stei|W10">Ethik 4 — Stei, W10</option>
+        <option value="REe1|Religion 1|WagL|O22">Religion 1 — WagL, O22</option>
+        <option value="REe2|Religion 2|Roh|W09">Religion 2 — Roh, W09</option>
+      </select>
+
+      <label for="s-spo">Sport (Do 3./4.)</label>
+      <select id="s-spo">
+        <option value="SPOmat|Sport Matte|Bel|S1">Sport Matte — Bel, S1</option>
+        <option value="SPOwahl|Sport Wahl|HoA|S2">Sport Wahl — HoA, S2</option>
+      </select>
+
+      <label for="s-prof">Profil (Do 5./6.)</label>
+      <select id="s-prof">
+        <option value="Pkü1|Profil Künstlerisch 1|Schi|W16/Aula">Künstlerisch 1 — Schi, W16/Aula</option>
+        <option value="Pkü2|Profil Künstlerisch 2|Mei|Aula">Künstlerisch 2 — Mei, Aula</option>
+        <option value="Pnawi|Profil Naturwissenschaft|Höh|N03">Naturwissenschaft — Höh, N03</option>
+        <option value="Psp1|Profil Sport 1|PoA|S2">Sport 1 — PoA, S2</option>
+        <option value="Psp2|Profil Sport 2|Fre|S1">Sport 2 — Fre, S1</option>
+      </select>
+
+      <label for="s-inf">Informatik (Fr 3.)</label>
+      <select id="s-inf">
+        <option value="INF10b1|Informatik 1|Fro|N11">Informatik 1 — Fro, N11</option>
+        <option value="INF10b2|Informatik 2|Geß|N12">Informatik 2 — Geß, N12</option>
+      </select>
+
+      <label for="s-lat">Standort für Wetter (Breite, Länge)</label>
+      <div class="row">
+        <input id="s-lat" inputmode="decimal" placeholder="51.3700">
+        <input id="s-lon" inputmode="decimal" placeholder="12.7400">
+      </div>
+
+      <p class="hint">Alles wird nur auf diesem Gerät gespeichert. Kein Konto, keine Cookies, kein Server. Wetterdaten kommen von Open-Meteo und werden ohne Schlüssel und ohne Weitergabe persönlicher Daten abgerufen.</p>
+    </div>
+  </details>
+
+  <footer>Aktualisiert sich automatisch um Mitternacht</footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   Speicher
+   ========================================================= */
+const KEY = "dash.v1";
+
+/* Als Funktion, damit events/checks nicht als geteilte Objekte
+   zwischen defaults und store hängen. */
+const defaults = () => ({
+  name: "Arne",
+  lang: "LA1|Latein|DrKu|W09",
+  eth:  "ETH1|Ethik 1|Pfi|W18",
+  spo:  "SPOmat|Sport Matte|Bel|S1",
+  prof: "Psp2|Profil Sport 2|Fre|S1",
+  inf:  "INF10b1|Informatik 1|Fro|N11",
+  lat:  51.3700,
+  lon:  12.7400,
+  events: [],
+  checks: {},
+  icsSources: [],   // importierte Kalender: [{id,name,at}]
+  wx: null          // letzter Wetterstand, damit offline etwas da ist
+});
+let store = load();
+let speicherOk = true;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    const base = defaults();
+    if(!raw) return base;
+    const p = JSON.parse(raw);
+    const s = Object.assign(base, p);
+    if(!Array.isArray(s.events)) s.events = [];
+    if(!s.checks || typeof s.checks !== "object") s.checks = {};
+    if(!Array.isArray(s.icsSources)) s.icsSources = [];
+    return s;
+  }catch(e){ return defaults(); }
+}
+function save(){
+  try{
+    localStorage.setItem(KEY, JSON.stringify(store));
+    speicherOk = true;
+  }catch(e){
+    if(speicherOk) melde("Speicher voll oder gesperrt – Änderungen gehen beim Schließen verloren.", 5000);
+    speicherOk = false;
+  }
+}
+
+/* Kurzer Hinweisstreifen am unteren Rand */
+let toastTimer = null;
+function melde(text, ms){
+  const el = document.getElementById("toast");
+  if(!el) return;
+  el.textContent = text;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove("show"), ms || 2800);
+}
+
+/* Abhak-Verlauf begrenzen, damit der Speicher nicht endlos wächst */
+function putzeChecks(){
+  const grenze = iso(addDays(new Date(), -120));
+  let weg = 0;
+  for(const k of Object.keys(store.checks)){
+    const d = k.slice(0,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d) && d < grenze){ delete store.checks[k]; weg++; }
+  }
+  return weg;
+}
+
+/* =========================================================
+   Datum & Zeit
+   ========================================================= */
+const DAYS  = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+const DAYS3 = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+const MON   = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+const iso = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const minutes = hhmm => { const [h,m] = hhmm.split(":").map(Number); return h*60+m; };
+const hhmm = min => String(Math.floor(min/60)).padStart(2,"0")+":"+String(min%60).padStart(2,"0");
+
+let today = new Date();
+let cursor = new Date();   // angezeigter Tag
+
+/* =========================================================
+   Stundenplan — Klasse 10b, gültig ab 17.08.2026
+   ========================================================= */
+const STUNDEN = ["07:55","08:45","09:50","10:40","11:50","13:00","13:50","14:35"];
+const DAUER = 45;
+
+const FACH = {
+  PH:"Physik", DE:"Deutsch", MU:"Musik", KU:"Kunst", MA:"Mathematik", CH:"Chemie",
+  EN:"Englisch", BIO:"Biologie", GEO:"Geografie", GE:"Geschichte",
+  "G/R/W":"Gemeinschaftskunde / Recht / Wirtschaft"
+};
+
+// Kürzel: [Fach, Lehrer, Raum] — "@wahl" = aus den Einstellungen
+const PLAN = {
+  1:[ ["PH","Sei","N09"], ["PH","Sei","N09"], ["MU","Hei","W18"], ["KU","Mei","M04"],
+      ["MA","Sei","W15"], ["MA","Sei","W15"], ["CH","Schö","N05"], ["CH","Schö","N05"] ],
+  2:[ ["DE","Gro","W14"], ["DE","Gro","W14"], ["@lang"], ["@lang"],
+      ["EN","Ger","O05"], ["EN","Ger","O05"], null, null ],
+  3:[ ["DE","Gro","W14"], ["DE","Gro","W14"], ["G/R/W","WagL","O22"], ["G/R/W","WagL","O22"],
+      ["MA","Sei","O05"], ["MA","Sei","O05"], ["GEO","Sto","O02"], ["GEO","Sto","O02"] ],
+  4:[ ["@eth"], ["@eth"], ["@spo"], ["@spo"], ["@prof"], ["@prof"], null, null ],
+  5:[ ["BIO","Kre","N06"], ["BIO","Kre","N06"], ["@inf"], ["@lang"],
+      ["EN","Ger","W08"], ["GE","HoA","O20"], ["GE","HoA","O20"], null ]
+};
+
+function wahl(slot){
+  const raw = store[slot.slice(1)] || "";
+  const [,name,lehrer,raum] = raw.split("|");
+  return [name||"Kurs", lehrer||"", raum||""];
+}
+function schultag(dow){
+  if(!PLAN[dow]) return [];
+  const out = [];
+  PLAN[dow].forEach((s,i)=>{
+    if(!s) return;
+    if(!STUNDEN[i]) return;
+    const cell = s[0].startsWith("@") ? wahl(s[0]) : [FACH[s[0]]||s[0], s[1], s[2]];
+    out.push({
+      kind:"schule",
+      start: minutes(STUNDEN[i]),
+      dauer: DAUER,
+      titel: cell[0],
+      stunden: [i+1],          // echte Stundennummern, nicht der Listenindex
+      raum: cell[2] || "",
+      lehrer: cell[1] || ""
+    });
+  });
+
+  // aufeinanderfolgende Stunden im selben Fach und Raum zusammenfassen
+  const merged = [];
+  out.forEach(e=>{
+    const last = merged[merged.length-1];
+    const anschluss = last && last.titel===e.titel && last.raum===e.raum
+                      && e.start - (last.start + last.dauer) <= 20;
+    if(anschluss){
+      last.dauer = (e.start + e.dauer) - last.start;
+      last.stunden.push(e.stunden[0]);
+    }else{
+      merged.push(Object.assign({}, e, {stunden: e.stunden.slice()}));
+    }
+  });
+
+  // Beschriftung erst am Ende bilden, damit auch Dreifachstunden stimmen
+  merged.forEach(e=>{
+    const st = e.stunden;
+    const label = st.length > 1
+      ? st[0]+".–"+st[st.length-1]+". Stunde"
+      : st[0]+". Stunde";
+    e.detail = [label, e.raum ? "Raum "+e.raum : "", e.lehrer].filter(Boolean).join(" · ");
+  });
+  return merged;
+}
+
+/* =========================================================
+   Trainingsplan — Fassung 3
+   Vier eigene Trainingstage plus der Schulsport am Donnerstag
+   ergeben fünf Bewegungstage. Montag und Mittwoch sind Ruhetage
+   mit reinen Dehnübungen, weil an diesen Tagen der Bus erst 16 Uhr
+   ankommt und zusätzlich Nachhilfe ansteht.
+
+     Mo  Ruhetag · Dehnen             (Bus 16:00, Nachhilfe 17–18)
+     Di  Beine & Calisthenics-Skill   (Bus 14:20, viel Zeit)
+     Mi  Ruhetag · Dehnen             (Bus 16:00, Nachhilfe 18–19)
+     Do  Schulsport 3.–6. Stunde + Regeneration
+     Fr  Brust, Schulter-Push & Bauch (Bus 15:20)
+     Sa  10 km Lauf
+     So  Rücken, Zug & Bauch
+
+   Beine liegen auf Dienstag: bis zum Samstagslauf sind sie wieder
+   frisch, und der Sonntag danach belastet nur den Oberkörper.
+   ========================================================= */
+const TRAINING = {
+  1:{ titel:"Ruhetag · Dehnen & Mobilisation", dauer:"ca. 30 Min", von:"18:50", bis:"19:20",
+      hinweis:"Kein Krafttraining. Nach dem langen Schultag und der Nachhilfe nur lockern.",
+      uebungen:[
+        {n:"Faszienrollen Rücken & Beine", s:"6–8 Min", e:"Faszienrolle", a:"Langsam, an harten Stellen verweilen"},
+        {n:"Hüftbeuger-Dehnung (Ausfallschritt)", s:"3 × 45 s pro Seite", e:"Matte", a:"Vom langen Sitzen in der Schule"},
+        {n:"Brust- & Schulteröffner an der Wand", s:"3 × 40 s", e:"Wand / Band", a:"Gegen die Schulter-Rundung vom Schreiben"},
+        {n:"Katze-Kuh & Thorax-Rotation", s:"2 × 10 pro Seite", e:"Matte", a:"Wirbelsäule mobil halten"},
+        {n:"Nacken & seitliche Halsmuskeln", s:"2 × 30 s pro Seite", e:"—", a:"Sanft, ohne Zug am Kopf"},
+        {n:"Band Pull-Aparts", s:"2 × 15", e:"Widerstandsband", tag:"reha", a:"Schulter stabil für Dienstag"}
+      ]},
+  2:{ titel:"Beine & Calisthenics-Skill", dauer:"ca. 75 Min", von:"15:15", bis:"16:30",
+      hinweis:"Der Tag mit der meisten Zeit — Bus schon 14:20 zu Hause. Bis zum Samstagslauf sind die Beine wieder frisch.",
+      uebungen:[
+        {n:"Handstand gegen Wand", s:"4 × 20–30 s", e:"Freie Wand", tag:"skill", a:"Bauch zur Wand, Schulterdruck hoch"},
+        {n:"Bulgarian Split Squats", s:"3 × 10–12 pro Seite", e:"Bank + KH/LH", a:"Kräftigt Beine & Lauf-Gelenke"},
+        {n:"Goblet Squats", s:"3 × 8–12", e:"Langhantel/KH", a:"Kontrolliert runter, kein Einknicken"},
+        {n:"Rumänisches Kreuzheben", s:"3 × 10–12", e:"Langhantel", a:"Hüftstreckung, unterer Rücken bleibt gerade"},
+        {n:"Wadenheben einbeinig", s:"3 × 15", e:"Stufe", a:"Schützt Achillessehne beim Laufen"},
+        {n:"Einbeinstand auf Wackelbrett", s:"2 × 45 s pro Bein", e:"Wackelbrett", a:"Sprunggelenk fürs Laufen stabilisieren"},
+        {n:"Seitstütz (Side Plank)", s:"3 × 40–60 s pro Seite", e:"Matte", tag:"bauch", a:"Schräge Bauchmuskeln & Hüfte"}
+      ]},
+  3:{ titel:"Ruhetag · Dehnen & Mobilisation", dauer:"ca. 30 Min", von:"19:10", bis:"19:40",
+      hinweis:"Kein Krafttraining. Bereitet die Beine und Schultern auf die vier Stunden Schulsport am Donnerstag vor.",
+      uebungen:[
+        {n:"Faszienrollen Oberschenkel & Waden", s:"6–8 Min", e:"Faszienrolle", a:"Vorbereitung auf den Sport morgen"},
+        {n:"Beinrückseite im Sitzen", s:"3 × 45 s pro Seite", e:"Matte", a:"Rücken lang, nicht rund"},
+        {n:"Waden & Achillessehne an der Stufe", s:"3 × 40 s pro Seite", e:"Stufe", a:"Wichtig vor viel Springen und Laufen"},
+        {n:"Hüftöffner (Taube)", s:"2 × 60 s pro Seite", e:"Matte", a:"Ruhig atmen, nicht wippen"},
+        {n:"Schulterkreisen & Armkreisen", s:"2 × 15", e:"—", a:"Gelenke warm für morgen"},
+        {n:"Band Außenrotation", s:"2 × 15 pro Seite", e:"Widerstandsband", tag:"reha", a:"Schulter für Ballsport sichern"}
+      ]},
+  4:{ titel:"Schulsport + Regeneration", dauer:"4 Std Schulsport · 30 Min Regeneration", von:"15:15", bis:"15:45",
+      hinweis:"Donnerstag zählt als fünfter Bewegungstag: 3.–6. Stunde Sport in der Schule. Danach kein Krafttraining, nur ausrollen und dehnen.",
+      uebungen:[
+        {n:"Ausrollen Beine & Gesäß", s:"8–10 Min", e:"Faszienrolle", a:"Nach vier Stunden Sport zuerst lockern"},
+        {n:"Waden & Achillessehne", s:"3 × 40 s pro Seite", e:"Stufe", a:"Die am stärksten belastete Stelle"},
+        {n:"Hüftbeuger & Quadrizeps", s:"2 × 45 s pro Seite", e:"Matte", a:"Locker, nicht in den Schmerz"},
+        {n:"Bird Dog", s:"2 × 12 pro Seite", e:"Matte", tag:"reha", a:"Rumpf beruhigen, Rücken schonen"},
+        {n:"Beine hoch an die Wand", s:"5 Min", e:"Wand", a:"Beine entlasten, Puls runterfahren"}
+      ]},
+  5:{ titel:"Brust, Schulter-Push & Bauch", dauer:"ca. 75 Min", von:"16:15", bis:"17:30",
+      hinweis:"Reiner Oberkörper — die Beine bleiben frisch für den Lauf am Samstag.",
+      uebungen:[
+        {n:"Dips an der Stange", s:"3–4 × 8–12", e:"Dipstation", a:"Tiefe Brustdehnung, Ellbogen eng"},
+        {n:"Liegestütze auf Parallettes", s:"3 × 10–15", e:"Parallettes", a:"Volle ROM, Schultern tief"},
+        {n:"Kurzhantel Fliegende", s:"3 × 12–15", e:"KH / Matte", a:"Leicht, Dehnung ohne Schmerz"},
+        {n:"Erhöhte Pike Push-ups", s:"3 × 8–10", e:"Parallettes + Erhöhung", tag:"skill", a:"Hüfte hoch, Druck für Handstand"},
+        {n:"Hängendes Beinheben", s:"3 × 10–12", e:"Klimmzugstange", tag:"bauch", a:"Ohne Schwung zur Brust"},
+        {n:"Hollow Body Hold", s:"3 × 30–45 s", e:"Matte", tag:"bauch", a:"Unteren Rücken fest am Boden"},
+        {n:"Schulter Abduktion", s:"2 × 15", e:"Band / KH", tag:"reha", a:"Bis Schulterhöhe anheben"}
+      ]},
+  6:{ titel:"10 km Lauf", dauer:"ca. 70 Min", von:"09:30", bis:"10:40",
+      hinweis:"Fester Wochenhöhepunkt. Letzter Beintag war Dienstag, die Beine sind erholt.",
+      uebungen:[
+        {n:"Einlaufen locker", s:"10 Min", e:"—", a:"Ruhiges Tempo, Puls hochfahren"},
+        {n:"10 km Hauptlauf", s:"gleichmäßiges Tempo", e:"—", a:"So schnell, dass Reden noch geht"},
+        {n:"Auslaufen & Dehnen", s:"8–10 Min", e:"Matte", a:"Waden, Oberschenkel, Hüfte"}
+      ]},
+  0:{ titel:"Rücken, Zug & Bauch", dauer:"ca. 75 Min", von:"10:00", bis:"11:15",
+      hinweis:"Oberkörper am Tag nach dem Lauf — die Beine bekommen frei.",
+      uebungen:[
+        {n:"Klimmzüge (Pull-ups)", s:"4 × 6–10", e:"Klimmzugstange", a:"Voller Aushang, Brust zur Stange"},
+        {n:"Inverted Rows (Rudern)", s:"3 × 10–12", e:"Dipstange", a:"Körper gestreckt, Schulterblätter zusammen"},
+        {n:"Hyperextensions", s:"3 × 12–15", e:"ATX Bank", a:"Rückenstrecker & Gesäß anspannen"},
+        {n:"L-Sit / Tuck L-Sit", s:"3 × max. Zeit", e:"Parallettes", tag:"bauch", a:"Aktiv aus Schultern rausdrücken"},
+        {n:"Ab Wheel / Rollouts", s:"3 × 10–12", e:"Wackelbrett/Rolle", tag:"bauch", a:"Volle Rumpfspannung"},
+        {n:"Schulter Wechselseitig", s:"2 × 15", e:"Widerstandsband", tag:"reha", a:"Sanfte Zugbewegung zur Stabilisierung"}
+      ]}
+};
+
+const WARMUP = "Vor Di, Fr und So: 10–12 Min Mobilisation, Außen-/Innenrotation mit Band (2–3 × 15–20), Band Pull-Aparts (2 × 15).";
+
+/* =========================================================
+   Tagesablauf
+   Heimkunft mit dem Bus, Nachhilfe, Mahlzeiten und Lernblöcke.
+   Nichts wird nach 20:30 eingeplant — das ist die Abendgrenze.
+   kind: "routine" | "lernen" | "nachhilfe"
+   faecher:true  -> die Fächer des nächsten Schultags werden angehängt
+   ========================================================= */
+const ABENDGRENZE = "20:30";
+
+const HEIMKUNFT = {1:"16:00", 2:"14:20", 3:"16:00", 4:"14:20", 5:"15:20"};
+
+const MORGEN = [
+  {t:"06:15", n:"Aufstehen & fertig machen"},
+  {t:"06:50", n:"Frühstück"},
+  {t:"07:25", n:"Losfahren zur Schule"}
+];
+
+const ROUTINE = {
+  /* ---- Montag: Ruhetag, Nachhilfe 17–18 ---- */
+  1:[
+    {t:"16:00", n:"Zu Hause (Bus)"},
+    {von:"16:15", bis:"17:00", kind:"lernen", n:"Lernen", faecher:true},
+    {von:"17:00", bis:"18:00", kind:"nachhilfe", n:"Nachhilfe"},
+    {von:"18:10", bis:"18:40", n:"Abendessen"},
+    {von:"19:30", bis:"20:20", kind:"lernen", n:"Vertiefung & Hausaufgaben"},
+    {t:"20:30", n:"Abendroutine, runterkommen"},
+    {t:"21:45", n:"Bildschirm aus, Tag abschließen"},
+    {t:"22:15", n:"Schlafen"}
+  ],
+  /* ---- Dienstag: Beine & Skill, Bus schon 14:20 ---- */
+  2:[
+    {t:"14:20", n:"Zu Hause (Bus)"},
+    {von:"14:30", bis:"15:00", n:"Mittagessen"},
+    {von:"16:30", bis:"17:00", n:"Duschen & Pause"},
+    {von:"17:00", bis:"18:00", kind:"lernen", n:"Lernen", faecher:true},
+    {von:"18:10", bis:"18:40", n:"Abendessen"},
+    {von:"18:50", bis:"19:50", kind:"lernen", n:"Vertiefung & Hausaufgaben"},
+    {t:"20:30", n:"Abendroutine, runterkommen"},
+    {t:"21:45", n:"Bildschirm aus, Tag abschließen"},
+    {t:"22:15", n:"Schlafen"}
+  ],
+  /* ---- Mittwoch: Ruhetag, Nachhilfe 18–19 ---- */
+  3:[
+    {t:"16:00", n:"Zu Hause (Bus)"},
+    {von:"16:15", bis:"17:15", kind:"lernen", n:"Lernen", faecher:true},
+    {von:"17:20", bis:"17:50", n:"Abendessen"},
+    {von:"18:00", bis:"19:00", kind:"nachhilfe", n:"Nachhilfe"},
+    {von:"19:50", bis:"20:30", kind:"lernen", n:"Nacharbeiten & Hausaufgaben"},
+    {t:"20:30", n:"Abendroutine, runterkommen"},
+    {t:"21:45", n:"Bildschirm aus, Tag abschließen"},
+    {t:"22:15", n:"Schlafen"}
+  ],
+  /* ---- Donnerstag: vier Stunden Schulsport, dafür viel Lernzeit ---- */
+  4:[
+    {t:"14:20", n:"Zu Hause (Bus)"},
+    {von:"14:30", bis:"15:00", n:"Mittagessen"},
+    {von:"16:00", bis:"17:00", kind:"lernen", n:"Lernen", faecher:true},
+    {von:"17:15", bis:"17:55", kind:"lernen", n:"Lernen, zweiter Block"},
+    {von:"18:15", bis:"18:45", n:"Abendessen"},
+    {von:"19:00", bis:"19:30", kind:"lernen", n:"Vertiefung & Hausaufgaben"},
+    {t:"20:30", n:"Abendroutine, runterkommen"},
+    {t:"21:45", n:"Bildschirm aus, Tag abschließen"},
+    {t:"22:15", n:"Schlafen"}
+  ],
+  /* ---- Freitag: Push, Abend bleibt frei ---- */
+  5:[
+    {t:"15:20", n:"Zu Hause (Bus)"},
+    {von:"15:30", bis:"16:00", n:"Mittagessen"},
+    {von:"17:30", bis:"18:00", n:"Duschen & Pause"},
+    {von:"18:00", bis:"18:45", kind:"lernen", n:"Lernen", faecher:true},
+    {von:"19:00", bis:"19:30", n:"Abendessen"},
+    {t:"19:30", n:"Freitagabend frei"},
+    {t:"22:15", n:"Schlafen"}
+  ],
+  /* ---- Samstag: Lauftag ---- */
+  6:[
+    {t:"08:00", n:"Aufstehen & Frühstück"},
+    {von:"10:40", bis:"11:10", n:"Duschen & Pause"},
+    {von:"11:30", bis:"12:15", kind:"lernen", n:"Lernen", faecher:true},
+    {von:"13:00", bis:"13:30", n:"Mittagessen"},
+    {von:"18:30", bis:"19:00", n:"Abendessen"},
+    {t:"22:30", n:"Schlafen"}
+  ],
+  /* ---- Sonntag: Pull, Woche vorbereiten ---- */
+  0:[
+    {t:"08:00", n:"Aufstehen & Frühstück"},
+    {von:"11:15", bis:"11:45", n:"Duschen & Pause"},
+    {von:"13:00", bis:"13:30", n:"Mittagessen"},
+    {von:"15:00", bis:"16:00", kind:"lernen", n:"Lernen", faecher:true},
+    {von:"16:10", bis:"16:30", n:"Sachen für Montag packen"},
+    {von:"18:30", bis:"19:00", n:"Abendessen"},
+    {t:"21:45", n:"Bildschirm aus, Tag abschließen"},
+    {t:"22:15", n:"Schlafen"}
+  ]
+};
+
+/* =========================================================
+   Lernplan
+   Gelernt wird für den nächsten Schultag. Weil jedes Fach im
+   Stundenplan irgendwann vorkommt, ist damit über die Woche
+   automatisch jedes Fach abgedeckt — auch wenn die Kurswahl
+   oder der Stundenplan später geändert wird.
+   ========================================================= */
+function naechsterSchultag(date){
+  for(let i=1;i<=7;i++){
+    const d = addDays(date,i);
+    if(d.getDay()>=1 && d.getDay()<=5) return d;
+  }
+  return addDays(date,1);
+}
+
+/* Sportstunden fliegen raus — dafür lernt man nicht am Schreibtisch. */
+function lernFaecher(date){
+  const ziel = naechsterSchultag(date);
+  const namen = [];
+  schultag(ziel.getDay()).forEach(s=>{
+    if(/sport/i.test(s.titel)) return;
+    if(namen.some(x=>x.titel===s.titel)) return;
+    namen.push({titel:s.titel, raum:s.raum, stunden:s.stunden.join("./")+"."});
+  });
+  return {tag:ziel, faecher:namen};
+}
+
+/* =========================================================
+   Kalenderimport (.ics)
+   Liest die Datei auf dem Gerät, löst Serientermine auf und
+   übernimmt alles in store.events. Bestehende Einträge bleiben:
+   jeder importierte Termin bekommt einen Schlüssel aus Kalender,
+   UID und Datum — gleicher Schlüssel wird aktualisiert, alles
+   andere unangetastet. Selbst angelegte Termine haben keinen
+   Schlüssel und werden nie angefasst.
+   ========================================================= */
+const ICS_RUECK = 120;   // Tage rückwärts, die übernommen werden
+const ICS_VOR   = 400;   // Tage vorwärts
+const ICS_MAX   = 400;   // Bremse gegen endlose Serien
+
+/* Fortsetzungszeilen zusammenführen (RFC 5545) */
+function icsEntfalte(text){
+  const zeilen = text.replace(/^﻿/, "").replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n");
+  const out = [];
+  for(const z of zeilen){
+    if(/^[ \t]/.test(z) && out.length) out[out.length-1] += z.slice(1);
+    else out.push(z);
+  }
+  return out;
+}
+
+/* Maskierungen auflösen */
+function icsText(v){
+  return String(v)
+    .replace(/\\n/gi,"\n").replace(/\\,/g,",")
+    .replace(/\\;/g,";").replace(/\\\\/g,"\\").trim();
+}
+
+/* NAME;PARAM=X:WERT zerlegen — Doppelpunkt nur außerhalb von Anführungszeichen */
+function icsFeld(zeile){
+  let i = -1, q = false;
+  for(let k=0;k<zeile.length;k++){
+    const c = zeile[k];
+    if(c === '"') q = !q;
+    else if(c === ":" && !q){ i = k; break; }
+  }
+  if(i === -1) return null;
+  const kopf = zeile.slice(0,i), wert = zeile.slice(i+1);
+  const teile = kopf.split(";");
+  const name = teile.shift().toUpperCase();
+  const params = {};
+  for(const t of teile){
+    const eq = t.indexOf("=");
+    if(eq === -1) params[t.toUpperCase()] = "";
+    else params[t.slice(0,eq).toUpperCase()] = t.slice(eq+1).replace(/^"|"$/g,"");
+  }
+  return {name, params, wert};
+}
+
+/* Zeitangabe lesen -> {datum:"YYYY-MM-DD", zeit:"HH:MM"|null, ganztag:bool}
+   Z-Zeiten werden in Ortszeit umgerechnet. TZID-Zeiten werden als
+   Wandzeit übernommen — für einen Kalender in derselben Zeitzone richtig
+   und ohne Zeitzonendatenbank machbar. */
+function icsZeit(wert, params){
+  const v = String(wert).trim();
+  const nurDatum = (params && params.VALUE === "DATE") || /^\d{8}$/.test(v);
+  const m = v.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/);
+  if(!m) return null;
+  const Y=m[1], Mo=m[2], D=m[3], H=m[4], Mi=m[5], Z=m[7];
+  if(nurDatum || H === undefined) return {datum:Y+"-"+Mo+"-"+D, zeit:null, ganztag:true};
+  if(Z === "Z"){
+    const d = new Date(Date.UTC(+Y, +Mo-1, +D, +H, +Mi, 0));
+    return {datum: iso(d), zeit: String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"), ganztag:false};
+  }
+  return {datum:Y+"-"+Mo+"-"+D, zeit:H+":"+Mi, ganztag:false};
+}
+
+/* ISO-8601-Dauer in Minuten */
+function icsDauer(v){
+  const m = String(v).trim().match(/^([+-])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/i);
+  if(!m) return null;
+  const vz = m[1] === "-" ? -1 : 1;
+  return vz * ((+(m[2]||0))*10080 + (+(m[3]||0))*1440 + (+(m[4]||0))*60 + (+(m[5]||0)) + Math.round((+(m[6]||0))/60));
+}
+
+/* VEVENT-Blöcke einsammeln */
+function icsLies(text){
+  const zeilen = icsEntfalte(text);
+  const events = [];
+  let kalName = "", akt = null, tiefe = 0, inTz = false;
+
+  for(const z of zeilen){
+    const up = z.toUpperCase();
+    if(up.startsWith("BEGIN:VTIMEZONE")){ inTz = true; continue; }
+    if(up.startsWith("END:VTIMEZONE")){ inTz = false; continue; }
+    if(inTz) continue;
+
+    if(up.startsWith("BEGIN:VEVENT")){ akt = {f:{}, ex:[]}; tiefe = 0; continue; }
+    if(up.startsWith("END:VEVENT")){ if(akt) events.push(akt); akt = null; continue; }
+
+    if(akt){
+      if(up.startsWith("BEGIN:")){ tiefe++; continue; }
+      if(up.startsWith("END:")){ tiefe = Math.max(0, tiefe-1); continue; }
+      if(tiefe > 0) continue;               // Erinnerungen (VALARM) überspringen
+    }
+
+    const f = icsFeld(z);
+    if(!f) continue;
+    if(!akt){
+      if(f.name === "X-WR-CALNAME") kalName = icsText(f.wert);
+      continue;
+    }
+    if(f.name === "EXDATE"){
+      for(const teil of f.wert.split(",")){
+        const d = icsZeit(teil, f.params);
+        if(d) akt.ex.push(d.datum);
+      }
+      continue;
+    }
+    if(!(f.name in akt.f)) akt.f[f.name] = f;
+  }
+  return {kalName, events};
+}
+
+/* Serienregel auflösen: FREQ, INTERVAL, COUNT, UNTIL, BYDAY */
+const ICS_WT = {SU:0, MO:1, TU:2, WE:3, TH:4, FR:5, SA:6};
+
+function icsSerie(startDatum, rrule, ausnahmen, von, bis){
+  const daten = [];
+  const r = {};
+  for(const teil of String(rrule).split(";")){
+    const eq = teil.indexOf("=");
+    if(eq > 0) r[teil.slice(0,eq).toUpperCase()] = teil.slice(eq+1).toUpperCase();
+  }
+  const freq = r.FREQ || "";
+  const schritt = Math.max(1, parseInt(r.INTERVAL||"1",10) || 1);
+  const anzahl = r.COUNT ? parseInt(r.COUNT,10) : null;
+  let ende = null;
+  if(r.UNTIL){ const u = icsZeit(r.UNTIL, {}); if(u) ende = u.datum; }
+  const tage = r.BYDAY
+    ? r.BYDAY.split(",").map(s=>ICS_WT[s.replace(/^[+-]?\d+/,"")]).filter(v=>v!==undefined)
+    : null;
+
+  if(freq === "WEEKLY" && tage && tage.length){
+    const sd = new Date(startDatum+"T12:00:00");
+    let wochenStart = iso(addDays(sd, -((sd.getDay()+6)%7)));   // Montag der Startwoche
+    let ausgegeben = 0, schutz = 0, fertig = false;
+    while(!fertig && schutz++ < ICS_MAX*2){
+      for(const wt of tage.slice().sort()){
+        const d = iso(addDays(new Date(wochenStart+"T12:00:00"), (wt+6)%7));
+        if(d < startDatum) continue;
+        if(ende && d > ende){ fertig = true; break; }
+        if(d > bis){ fertig = true; break; }
+        if(anzahl && ausgegeben >= anzahl){ fertig = true; break; }
+        if(d >= von && ausnahmen.indexOf(d) === -1) daten.push(d);
+        ausgegeben++;
+      }
+      if(fertig) break;
+      wochenStart = iso(addDays(new Date(wochenStart+"T12:00:00"), 7*schritt));
+      if(wochenStart > bis) break;
+    }
+    return daten;
+  }
+
+  let lauf = startDatum, ausgegeben = 0, schutz = 0;
+  while(schutz++ < ICS_MAX){
+    if(anzahl && ausgegeben >= anzahl) break;
+    if(ende && lauf > ende) break;
+    if(lauf > bis) break;
+    if(lauf >= von && ausnahmen.indexOf(lauf) === -1) daten.push(lauf);
+    ausgegeben++;
+    const d = new Date(lauf+"T12:00:00");
+    if(freq === "DAILY")        d.setDate(d.getDate()+schritt);
+    else if(freq === "WEEKLY")  d.setDate(d.getDate()+7*schritt);
+    else if(freq === "MONTHLY") d.setMonth(d.getMonth()+schritt);
+    else if(freq === "YEARLY")  d.setFullYear(d.getFullYear()+schritt);
+    else break;                       // unbekannte Regel: nur der Starttermin
+    lauf = iso(d);
+  }
+  return daten;
+}
+
+/* Import ausführen */
+function icsImport(text, dateiname){
+  const gelesen = icsLies(text);
+  if(!gelesen.events.length){
+    return {ok:false, meldung:"In der Datei sind keine Termine (VEVENT) enthalten."};
+  }
+
+  const heute = iso(new Date());
+  const von = iso(addDays(new Date(), -ICS_RUECK));
+  const bis = iso(addDays(new Date(),  ICS_VOR));
+  const quelleName = gelesen.kalName || dateiname || "Kalender";
+  const quelle = "ics:" + quelleName;
+
+  const nachSchluessel = new Map();
+  for(const e of store.events) if(e.key) nachSchluessel.set(e.key, e);
+
+  let neu=0, aktualisiert=0, ausserhalb=0, abgesagt=0, unlesbar=0;
+
+  for(const ev of gelesen.events){
+    const F = ev.f;
+    try{
+      if(F.STATUS && icsText(F.STATUS.wert).toUpperCase() === "CANCELLED"){ abgesagt++; continue; }
+      if(!F.DTSTART){ unlesbar++; continue; }
+      const st = icsZeit(F.DTSTART.wert, F.DTSTART.params);
+      if(!st){ unlesbar++; continue; }
+
+      let en = F.DTEND ? icsZeit(F.DTEND.wert, F.DTEND.params) : null;
+      let dauerMin = (!en && F.DURATION) ? icsDauer(F.DURATION.wert) : null;
+
+      const ganztag = st.ganztag;
+      let zeit = ganztag ? "" : st.zeit;
+      let bisZeit = "";
+      let spanne = 0;
+
+      if(ganztag){
+        if(en){
+          // DTEND ist bei Ganztagsterminen der Tag NACH dem Ende
+          const letzter = iso(addDays(new Date(en.datum+"T12:00:00"), -1));
+          spanne = Math.max(0, Math.round(
+            (new Date(letzter+"T12:00:00") - new Date(st.datum+"T12:00:00")) / 86400000));
+        }else if(dauerMin != null){
+          spanne = Math.max(0, Math.floor(dauerMin/1440) - (dauerMin % 1440 === 0 ? 1 : 0));
+        }
+      }else{
+        if(en){
+          bisZeit = en.zeit || "";
+          if(en.datum > st.datum) bisZeit = "23:59";    // über Mitternacht kappen
+        }else if(dauerMin != null){
+          const e2 = minutes(zeit) + dauerMin;
+          bisZeit = e2 >= 1440 ? "23:59" : hhmm(e2);
+        }
+        if(bisZeit && minutes(bisZeit) <= minutes(zeit)){
+          bisZeit = hhmm(Math.min(1439, minutes(zeit)+30));
+        }
+      }
+
+      const titel = F.SUMMARY ? icsText(F.SUMMARY.wert) : "(ohne Titel)";
+      const ort   = F.LOCATION ? icsText(F.LOCATION.wert) : "";
+      const notiz = F.DESCRIPTION ? icsText(F.DESCRIPTION.wert).slice(0,500) : "";
+      const uid   = F.UID ? icsText(F.UID.wert) : ("ohne-uid-"+titel+"-"+st.datum);
+
+      let datenListe;
+      if(F.RRULE){
+        datenListe = icsSerie(st.datum, F.RRULE.wert, ev.ex, von, bis);
+        if(!datenListe.length && st.datum >= von && st.datum <= bis) datenListe = [st.datum];
+      }else{
+        datenListe = [st.datum];
+      }
+
+      for(const d0 of datenListe){
+        for(let k=0; k <= Math.min(spanne, 60); k++){
+          const tag = k === 0 ? d0 : iso(addDays(new Date(d0+"T12:00:00"), k));
+          if(tag < von || tag > bis){ ausserhalb++; continue; }
+          const key = quelle+"|"+uid+"|"+tag;
+          const da = nachSchluessel.get(key);
+          const satz = {
+            id: da ? da.id : (Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+            key: key,
+            src: quelle,
+            title: titel,
+            date: tag,
+            time: ganztag ? "" : zeit,
+            endTime: ganztag ? "" : bisZeit,
+            place: ort,
+            note: notiz
+          };
+          if(da){ Object.assign(da, satz); aktualisiert++; }
+          else{ store.events.push(satz); nachSchluessel.set(key, satz); neu++; }
+        }
+      }
+    }catch(err){ unlesbar++; }
+  }
+
+  const bekannt = store.icsSources.find(s=>s.id === quelle);
+  if(bekannt){ bekannt.at = Date.now(); bekannt.name = quelleName; }
+  else store.icsSources.push({id:quelle, name:quelleName, at:Date.now()});
+
+  store.events.sort((a,b)=> (a.date+(a.time||"99:99")).localeCompare(b.date+(b.time||"99:99")));
+  save();
+
+  return {ok:true, neu, aktualisiert, ausserhalb, abgesagt, unlesbar,
+          quelle:quelleName, gesamt:gelesen.events.length};
+}
+
+/* Bericht und Quellenliste anzeigen */
+function zeigeIcsBericht(r){
+  const box = document.getElementById("ics-report");
+  box.hidden = false;
+  if(!r.ok){
+    box.innerHTML = '<div class="warn-line">Import nicht möglich</div>';
+    box.insertAdjacentHTML("beforeend", "<p></p>");
+    box.querySelector("p").textContent = r.meldung;
+    return;
+  }
+  const zeilen = [
+    ["Kalender", r.quelle],
+    ["Termine in der Datei", r.gesamt],
+    ["Neu übernommen", r.neu],
+    ["Aktualisiert", r.aktualisiert]
+  ];
+  if(r.ausserhalb) zeilen.push(["Außerhalb des Zeitfensters", r.ausserhalb]);
+  if(r.abgesagt)  zeilen.push(["Abgesagt, übersprungen", r.abgesagt]);
+  if(r.unlesbar)  zeilen.push(["Nicht lesbar", r.unlesbar]);
+
+  const dl = document.createElement("dl");
+  zeilen.forEach(([k,v])=>{
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = String(v);
+    dl.appendChild(dt); dl.appendChild(dd);
+  });
+  box.innerHTML = "";
+  box.appendChild(dl);
+  const p = document.createElement("p");
+  p.textContent = "Bestehende Einträge wurden nicht gelöscht. Zeitfenster: "
+                + ICS_RUECK + " Tage zurück bis " + ICS_VOR + " Tage voraus.";
+  box.appendChild(p);
+}
+
+function zeigeIcsQuellen(){
+  const el = document.getElementById("ics-sources");
+  el.innerHTML = "";
+  if(!store.icsSources.length) return;
+  store.icsSources.forEach(q=>{
+    const n = store.events.filter(e=>e.src === q.id).length;
+    const d = new Date(q.at);
+    const li = document.createElement("li");
+    li.innerHTML = '<div class="txt"><b></b><span></span></div>'
+                 + '<button type="button">Entfernen</button>';
+    li.querySelector("b").textContent = q.name;
+    li.querySelector("span").textContent = n + " Termine · importiert am "
+      + String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
+    li.querySelector("button").addEventListener("click", ()=>{
+      if(!confirm("Kalender „"+q.name+"“ entfernen? "+n+" importierte Termine werden gelöscht. Selbst angelegte Termine bleiben erhalten.")) return;
+      store.events = store.events.filter(e=>e.src !== q.id);
+      store.icsSources = store.icsSources.filter(s=>s.id !== q.id);
+      save(); zeigeIcsQuellen(); renderEvents(); renderTimeline();
+      melde("Kalender entfernt.");
+    });
+    el.appendChild(li);
+  });
+}
+
+/* =========================================================
+   Tag zusammenbauen
+   ========================================================= */
+function tagesplan(date){
+  const dow = date.getDay();
+  const istSchultag = dow>=1 && dow<=5;
+  const items = [];
+
+  if(istSchultag){
+    items.push(...schultag(dow));
+    MORGEN.forEach(r=>{
+      items.push({kind:"routine", start:minutes(r.t), dauer:0, titel:r.n, detail:"Tagesablauf"});
+    });
+  }
+
+  // Nachmittag und Abend: Heimkunft, Lernen, Nachhilfe, Mahlzeiten
+  const lern = lernFaecher(date);
+  (ROUTINE[dow] || []).forEach(r=>{
+    const kind = r.kind || "routine";
+    const start = minutes(r.von || r.t);
+    const dauer = (r.von && r.bis) ? Math.max(0, minutes(r.bis)-minutes(r.von)) : 0;
+    let titel = r.n, detail;
+
+    if(kind === "lernen"){
+      if(r.faecher){
+        const liste = lern.faecher.map(f=>f.titel);
+        titel = "Lernen für " + DAYS[lern.tag.getDay()];
+        detail = liste.length
+          ? liste.join(" · ") + (liste.length < 2 ? " · dazu freie Wahl" : "")
+          : "freie Wahl";
+      }else{
+        detail = "Lernzeit";
+      }
+    }else if(kind === "nachhilfe"){
+      detail = r.von + "–" + r.bis + " Uhr";
+    }else{
+      detail = "Tagesablauf";
+    }
+    items.push({kind:kind, start:start, dauer:dauer, titel:titel, detail:detail});
+  });
+
+  const tr = TRAINING[dow];
+  if(tr && tr.uebungen.length){
+    items.push({
+      kind: dow===6 ? "lauf" : "training",
+      start: minutes(tr.von),
+      dauer: Math.max(0, minutes(tr.bis) - minutes(tr.von)),
+      titel: tr.titel, detail: tr.dauer
+    });
+  }
+
+  store.events.filter(e=>e.date===iso(date)).forEach(e=>{
+    const spanne = e.time
+      ? (e.endTime ? e.time+"–"+e.endTime+" Uhr" : e.time+" Uhr")
+      : "ganztägig";
+    items.push({
+      kind:"termin",
+      start: e.time?minutes(e.time):-1,
+      dauer: (e.time && e.endTime) ? Math.max(0, minutes(e.endTime)-minutes(e.time)) : 0,
+      titel:e.title,
+      detail:[spanne, e.place].filter(Boolean).join(" · "),
+      id:e.id,
+      src:e.src||""
+    });
+  });
+
+  items.sort((a,b)=> a.start-b.start);
+  return items;
+}
+
+/* =========================================================
+   Rendern: Zeitstrahl
+   ========================================================= */
+function renderTimeline(){
+  const el = document.getElementById("timeline");
+  const items = tagesplan(cursor);
+  const key = iso(cursor);
+  el.innerHTML = "";
+
+  if(!items.length){
+    el.innerHTML = '<div class="empty">Für diesen Tag ist nichts eingetragen.</div>';
+  }
+
+  items.forEach((it,idx)=>{
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    const zeit = it.start<0 ? "—" : hhmm(it.start);
+    const bis  = it.dauer ? "–"+hhmm(it.start+it.dauer) : "";
+
+    const chkId = key+"|"+idx+"|"+it.titel;
+    const isDone = !!store.checks[chkId];
+
+    slot.innerHTML =
+      '<div class="time mono">'+zeit+(bis?'<br><span style="opacity:.55">'+bis.slice(1)+'</span>':'')+'</div>'+
+      '<div class="body"><div class="entry'+(isDone?' done':'')+'">'+
+        '<span class="tag '+it.kind+'"></span>'+
+        '<div class="txt"><b></b><span></span></div>'+
+        (it.kind==="routine"||it.kind==="training"||it.kind==="lauf"||it.kind==="lernen"
+          ? '<button class="chk'+(isDone?' on':'')+'" data-mark="'+(isDone?'✓':'')+'"'
+            +' aria-label="Erledigt" aria-pressed="'+(isDone?'true':'false')+'"></button>' : '')+
+      '</div></div>';
+
+    slot.querySelector(".txt b").textContent = it.titel;
+    slot.querySelector(".txt span").textContent = it.detail || "";
+
+    const chk = slot.querySelector(".chk");
+    if(chk){
+      chk.addEventListener("click", ()=>{
+        store.checks[chkId] = !store.checks[chkId];
+        save(); renderTimeline();
+      });
+    }
+    el.appendChild(slot);
+  });
+
+  // Jetzt-Linie nur am heutigen Tag
+  if(iso(cursor)===iso(new Date())){
+    const now = new Date().getHours()*60 + new Date().getMinutes();
+    const slots = [...el.querySelectorAll(".slot")];
+    let target = slots.find((s,i)=> items[i].start >= now);
+    const line = document.createElement("div");
+    line.className = "tl-now";
+    if(target){ el.insertBefore(line, target); }
+    else if(slots.length){ el.appendChild(line); }
+  }
+
+  document.getElementById("plan-meta").textContent =
+    items.filter(i=>i.kind==="schule").length ? "Schultag" : "schulfrei";
+}
+
+/* =========================================================
+   Rendern: Training
+   ========================================================= */
+function renderTraining(){
+  const el = document.getElementById("training");
+  const dow = cursor.getDay();
+  const tr = TRAINING[dow];
+  const key = iso(cursor);
+
+  let html = '<div class="tr-head"><b></b><span></span></div>';
+  el.innerHTML = html;
+  el.querySelector(".tr-head b").textContent = tr.titel;
+  el.querySelector(".tr-head span").textContent =
+    (tr.von && tr.bis ? tr.von + "–" + tr.bis + " Uhr · " : "")
+    + tr.dauer + (tr.hinweis ? " · " + tr.hinweis : "");
+
+  if(!tr.uebungen.length){
+    el.insertAdjacentHTML("beforeend", '<div class="empty">Heute nichts zusätzlich. Erholung ist Teil des Plans.</div>');
+  }
+
+  tr.uebungen.forEach((u,i)=>{
+    const id = key+"|ex|"+i;
+    const done = !!store.checks[id];
+    const row = document.createElement("div");
+    row.className = "ex"+(done?" done":"");
+    row.innerHTML =
+      '<button class="chk'+(done?' on':'')+'" data-mark="'+(done?'✓':'')+'"'
+        +' aria-label="Erledigt" aria-pressed="'+(done?'true':'false')+'"></button>'+
+      '<div class="txt"><b></b><span></span></div>'+
+      '<div class="sets mono"></div>';
+    const b = row.querySelector(".txt b");
+    if(u.tag) b.innerHTML = '<span class="badge '+u.tag+'">'+u.tag+'</span>';
+    b.append(u.n);
+    // ">" ist wichtig: sonst trifft die Auswahl das Kennzeichen im <b>,
+    // und der Gerätetext landet im Kennzeichen statt in der Zeile darunter
+    row.querySelector(".txt > span").textContent = [u.e,u.a].filter(x=>x&&x!=="—").join(" · ");
+    row.querySelector(".sets").textContent = u.s;
+    row.querySelector(".chk").addEventListener("click", ()=>{
+      store.checks[id] = !store.checks[id]; save(); renderTraining();
+    });
+    el.appendChild(row);
+  });
+
+  document.getElementById("tr-meta").textContent = DAYS[dow];
+}
+
+/* =========================================================
+   Rendern: Lernplan
+   Zeigt die Fächer des nächsten Schultags zum Abhaken und die
+   dafür vorgesehenen Lernblöcke des angezeigten Tages.
+   ========================================================= */
+function renderLernen(){
+  const el = document.getElementById("lernplan");
+  const key = iso(cursor);
+  const lern = lernFaecher(cursor);
+  const bloecke = (ROUTINE[cursor.getDay()] || []).filter(r=>r.kind === "lernen" && r.von && r.bis);
+  const minuten = bloecke.reduce((s,r)=> s + (minutes(r.bis)-minutes(r.von)), 0);
+
+  el.innerHTML = '<div class="tr-head"><b></b><span></span></div>';
+  el.querySelector(".tr-head b").textContent =
+    "Für " + DAYS[lern.tag.getDay()] + ", " + lern.tag.getDate() + ". " + MON[lern.tag.getMonth()];
+  el.querySelector(".tr-head span").textContent = bloecke.length
+    ? minuten + " Min eingeplant: " + bloecke.map(r=>r.von+"–"+r.bis).join(", ")
+    : "Für diesen Tag ist keine Lernzeit eingeplant.";
+
+  if(!lern.faecher.length){
+    el.insertAdjacentHTML("beforeend", '<div class="empty">Am nächsten Schultag stehen keine Fächer an.</div>');
+    document.getElementById("lern-meta").textContent = "—";
+    return;
+  }
+
+  lern.faecher.forEach((f,i)=>{
+    const id = key+"|lern|"+f.titel;
+    const done = !!store.checks[id];
+    const row = document.createElement("div");
+    row.className = "ex"+(done?" done":"");
+    row.innerHTML =
+      '<button class="chk'+(done?' on':'')+'" data-mark="'+(done?'✓':'')+'"'
+        +' aria-label="Erledigt" aria-pressed="'+(done?'true':'false')+'"></button>'+
+      '<div class="txt"><b></b><span></span></div>'+
+      '<div class="sets mono"></div>';
+    row.querySelector(".txt b").textContent = f.titel;
+    row.querySelector(".txt > span").textContent =
+      [f.stunden ? f.stunden+" Stunde" : "", f.raum ? "Raum "+f.raum : ""].filter(Boolean).join(" · ");
+    // Lernzeit gleichmäßig auf die Fächer verteilen
+    row.querySelector(".sets").textContent = minuten
+      ? "ca. " + Math.round(minuten / lern.faecher.length / 5) * 5 + " Min"
+      : "";
+    row.querySelector(".chk").addEventListener("click", ()=>{
+      store.checks[id] = !store.checks[id]; save(); renderLernen();
+    });
+    el.appendChild(row);
+  });
+
+  const fertig = lern.faecher.filter(f=>store.checks[key+"|lern|"+f.titel]).length;
+  document.getElementById("lern-meta").textContent = fertig + "/" + lern.faecher.length + " erledigt";
+}
+
+/* =========================================================
+   Rendern: Termine
+   ========================================================= */
+function renderEvents(){
+  const el = document.getElementById("events");
+  const heute = iso(new Date());
+  const grenze = iso(addDays(new Date(),14));
+  const liste = store.events
+    .filter(e=> e.date>=heute && e.date<=grenze)
+    .sort((a,b)=> (a.date+(a.time||"99:99")).localeCompare(b.date+(b.time||"99:99")));
+
+  if(!liste.length){
+    el.innerHTML = '<div class="empty">Keine Termine in den nächsten zwei Wochen. Unten einen hinzufügen.</div>';
+    return;
+  }
+  el.innerHTML = "";
+  liste.forEach(e=>{
+    const d = new Date(e.date+"T12:00:00");
+    const row = document.createElement("div");
+    row.className = "ev";
+    row.innerHTML =
+      '<div class="when mono"></div>'+
+      '<div class="txt"><b></b><span></span></div>'+
+      '<button class="del" aria-label="Termin löschen">×</button>';
+    row.querySelector(".when").innerHTML =
+      DAYS3[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)+".<br>"+(e.time || "ganztägig");
+    const b = row.querySelector(".txt b");
+    b.textContent = e.title;
+    if(e.src){
+      const tag = document.createElement("span");
+      tag.className = "src";
+      tag.textContent = "Kalender";
+      b.appendChild(tag);
+    }
+    // ">" nötig, sonst trifft die Auswahl das Kennzeichen im <b>
+    row.querySelector(".txt > span").textContent =
+      [e.time && e.endTime ? "bis "+e.endTime : "", e.place].filter(Boolean).join(" · ");
+    row.querySelector(".del").addEventListener("click", ()=>{
+      if(e.src && !confirm("Diesen importierten Termin löschen? Beim nächsten Import derselben Datei kommt er wieder.")) return;
+      store.events = store.events.filter(x=>x.id!==e.id);
+      save(); renderEvents(); renderTimeline();
+    });
+    el.appendChild(row);
+  });
+}
+
+document.getElementById("ev-form").addEventListener("submit", ev=>{
+  ev.preventDefault();
+  const t = document.getElementById("ev-title").value.trim();
+  const d = document.getElementById("ev-date").value;
+  if(!t || !d) return;
+  store.events.push({
+    id: Date.now().toString(36),
+    title: t, date: d,
+    time: document.getElementById("ev-time").value || "",
+    place: document.getElementById("ev-place").value.trim()
+  });
+  save();
+  ev.target.reset();
+  document.getElementById("ev-date").value = iso(cursor);
+  renderEvents(); renderTimeline();
+});
+
+/* =========================================================
+   Wetter (Open-Meteo, ohne Schlüssel, ohne Cookies)
+   ========================================================= */
+const WMO = {
+  0:["Klar","☀️"],1:["Überwiegend klar","🌤️"],2:["Teils bewölkt","⛅"],3:["Bedeckt","☁️"],
+  45:["Nebel","🌫️"],48:["Reifnebel","🌫️"],
+  51:["Leichter Nieselregen","🌦️"],53:["Nieselregen","🌦️"],55:["Starker Nieselregen","🌧️"],
+  61:["Leichter Regen","🌦️"],63:["Regen","🌧️"],65:["Starker Regen","🌧️"],
+  66:["Gefrierender Regen","🌧️"],67:["Gefrierender Regen","🌧️"],
+  71:["Leichter Schnee","🌨️"],73:["Schnee","🌨️"],75:["Starker Schnee","❄️"],77:["Schneegriesel","🌨️"],
+  80:["Schauer","🌦️"],81:["Schauer","🌧️"],82:["Kräftige Schauer","⛈️"],
+  85:["Schneeschauer","🌨️"],86:["Schneeschauer","❄️"],
+  95:["Gewitter","⛈️"],96:["Gewitter mit Hagel","⛈️"],99:["Gewitter mit Hagel","⛈️"]
+};
+const wmo = c => WMO[c] || ["Wetter","🌡️"];
+
+// Moped-Ampel
+function mopedCheck(tmax, tmin, regen, wind, boen, code){
+  const gruende = [];
+  let stufe = 0; // 0 grün, 1 gelb, 2 rot
+  const bump = (s,g)=>{ if(s>stufe) stufe=s; if(g) gruende.push(g); };
+
+  if(regen >= 60) bump(2,"Regen sehr wahrscheinlich");
+  else if(regen >= 25) bump(1,"Schauer möglich");
+
+  if(boen >= 55) bump(2,"starke Böen");
+  else if(boen >= 38) bump(1,"böiger Wind");
+
+  if(tmin <= 2) bump(2,"Frostgefahr, Straße kann glatt sein");
+  else if(tmax <= 7) bump(1,"kalt, warm anziehen");
+
+  if([95,96,99,66,67,71,73,75,77,85,86].includes(code)) bump(2,"Gewitter oder Schnee");
+
+  const texte = ["Passt zum Fahren","Geht, aber aufpassen","Lieber stehen lassen"];
+  return {stufe, text:texte[stufe], grund: gruende.join(" · ") || "Trocken, mild, wenig Wind"};
+}
+
+let wetterLaeuft = false;
+
+/* zwang = true erzwingt einen frischen Abruf, sonst wird ein
+   Stand genutzt, der jünger als 30 Minuten ist. */
+async function ladeWetter(zwang){
+  const lat = Number(store.lat) || defaults().lat;
+  const lon = Number(store.lon) || defaults().lon;
+
+  const c = store.wx;
+  const frisch = c && (Date.now() - c.at < 30*60*1000)
+              && Math.abs(c.lat - lat) < 0.01 && Math.abs(c.lon - lon) < 0.01;
+  if(c) zeigeWetter(c.daten, c.at);          // erst den letzten Stand zeigen
+  if(frisch && !zwang) return;
+  if(wetterLaeuft) return;
+  wetterLaeuft = true;
+
+  const url = "https://api.open-meteo.com/v1/forecast"
+    + "?latitude=" + lat + "&longitude=" + lon
+    + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m"
+    + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max"
+    + "&timezone=Europe%2FBerlin&forecast_days=7";
+
+  try{
+    const ctrl = new AbortController();
+    const abbruch = setTimeout(()=>ctrl.abort(), 12000);
+    const res = await fetch(url, {signal:ctrl.signal, cache:"no-store"});
+    clearTimeout(abbruch);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const w = await res.json();
+    if(!w || !w.current || !w.daily) throw new Error("unerwartete Antwort");
+    store.wx = {at:Date.now(), lat:lat, lon:lon, daten:w};
+    save();
+    zeigeWetter(w, store.wx.at);
+  }catch(err){
+    if(store.wx){
+      // Letzter Stand bleibt sichtbar, nur der Hinweis wird ergänzt
+      document.getElementById("wx-sub").textContent =
+        (navigator.onLine ? "Gerade nicht erreichbar" : "Offline")
+        + " · Stand " + zeitStempel(store.wx.at);
+    }else{
+      document.getElementById("wx-desc").textContent = "Wetter nicht erreichbar.";
+      document.getElementById("wx-sub").textContent  = "Ohne Internet bleibt der Rest des Dashboards nutzbar.";
+      document.getElementById("moped-txt").innerHTML = "<b>Moped-Check ohne Daten</b><em>Nochmal laden, sobald Netz da ist.</em>";
+    }
+  }finally{
+    wetterLaeuft = false;
+  }
+}
+
+function zeitStempel(ms){
+  const d = new Date(ms);
+  return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr";
+}
+
+function zeigeWetter(w, stand){
+  const [txt,ic] = wmo(w.current.weather_code);
+  document.getElementById("wx-now").innerHTML = Math.round(w.current.temperature_2m)+'<span>°</span>';
+  document.getElementById("wx-desc").textContent = ic+"  "+txt;
+  document.getElementById("wx-sub").textContent =
+    "Gefühlt "+Math.round(w.current.apparent_temperature)+"° · Wind "+Math.round(w.current.wind_speed_10m)+" km/h"
+    + (stand && Date.now()-stand > 45*60*1000 ? " · Stand "+zeitStempel(stand) : "");
+
+  const d = w.daily;
+  // Nicht blind Index 0 nehmen: bei einem gespeicherten Stand vom Vortag
+  // wäre das der falsche Tag.
+  const heuteIso = iso(new Date());
+  const hi = Math.max(0, d.time.indexOf(heuteIso));
+  const m = mopedCheck(d.temperature_2m_max[hi], d.temperature_2m_min[hi],
+                       d.precipitation_probability_max[hi], d.wind_speed_10m_max[hi],
+                       d.wind_gusts_10m_max[hi], d.weather_code[hi]);
+  const lamp = document.getElementById("moped-lamp");
+  lamp.className = "lamp " + ["go","warn","stop"][m.stufe];
+  document.getElementById("moped-txt").innerHTML = "<b></b><em></em>";
+  document.getElementById("moped-txt").querySelector("b").textContent = "Moped heute: "+m.text;
+  document.getElementById("moped-txt").querySelector("em").textContent = m.grund;
+
+  const wk = document.getElementById("wx-week");
+  wk.innerHTML = "";
+  d.time.forEach((t,i)=>{
+    const day = new Date(t+"T12:00:00");
+    const mm = mopedCheck(d.temperature_2m_max[i], d.temperature_2m_min[i],
+                          d.precipitation_probability_max[i], d.wind_speed_10m_max[i],
+                          d.wind_gusts_10m_max[i], d.weather_code[i]);
+    const istHeute = t === heuteIso;
+    const col = document.createElement("div");
+    col.className = "wx-day"+(istHeute?" is-today":"");
+    col.innerHTML =
+      '<div class="d">'+(istHeute?"Heute":DAYS3[day.getDay()])+'</div>'+
+      '<div class="ic">'+wmo(d.weather_code[i])[1]+'</div>'+
+      '<div class="t mono">'+Math.round(d.temperature_2m_max[i])+'°<small> '+Math.round(d.temperature_2m_min[i])+'°</small></div>'+
+      '<div class="r mono">'+d.precipitation_probability_max[i]+'%</div>'+
+      '<div class="dot" style="background:'+["var(--go)","var(--warn)","var(--stop)"][mm.stufe]+'"></div>';
+    col.title = "Moped: "+mm.text+" — "+mm.grund;
+    wk.appendChild(col);
+  });
+}
+
+/* =========================================================
+   Kopfzeile, Navigation, Mitternachts-Wechsel
+   ========================================================= */
+function renderHeader(){
+  const n = new Date();
+  const h = n.getHours();
+  const gruss = h<5 ? "Noch wach" : h<11 ? "Guten Morgen" : h<17 ? "Guten Tag" : h<22 ? "Guten Abend" : "Gute Nacht";
+  document.getElementById("greeting").textContent = gruss + ", " + (store.name || "Arne");
+  document.getElementById("eyebrow").textContent = DAYS[n.getDay()];
+  document.getElementById("dateline").textContent = n.getDate()+". "+MON[n.getMonth()]+" "+n.getFullYear();
+}
+function renderClock(){
+  const n = new Date();
+  document.getElementById("clock").innerHTML =
+    String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")+
+    "<small>Ortszeit</small>";
+}
+function renderNav(){
+  document.getElementById("nav-day").textContent =
+    iso(cursor)===iso(new Date()) ? "Heute" :
+    iso(cursor)===iso(addDays(new Date(),1)) ? "Morgen" :
+    iso(cursor)===iso(addDays(new Date(),-1)) ? "Gestern" : DAYS[cursor.getDay()];
+  document.getElementById("nav-date").textContent =
+    DAYS3[cursor.getDay()]+", "+cursor.getDate()+". "+MON[cursor.getMonth()];
+}
+/* Alles, was am angezeigten Tag hängt */
+function renderTag(){ renderNav(); renderTimeline(); renderTraining(); renderLernen(); }
+function renderAll(){ renderHeader(); renderClock(); renderTag(); renderEvents(); }
+
+document.getElementById("prev").addEventListener("click", ()=>{ cursor = addDays(cursor,-1); renderTag(); });
+document.getElementById("next").addEventListener("click", ()=>{ cursor = addDays(cursor, 1); renderTag(); });
+document.getElementById("jump-today").addEventListener("click", ()=>{ cursor = new Date(); renderTag(); });
+
+// Wischen zwischen den Tagen
+let tx=0, ty=0;
+document.getElementById("timeline").addEventListener("touchstart", e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
+document.getElementById("timeline").addEventListener("touchend", e=>{
+  const dx = e.changedTouches[0].clientX - tx;
+  const dy = e.changedTouches[0].clientY - ty;
+  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6){
+    cursor = addDays(cursor, dx<0 ? 1 : -1);
+    renderTag();
+  }
+}, {passive:true});
+
+/* =========================================================
+   Mitternachts-Wechsel
+   Dreifach abgesichert, weil Handys Zeitgeber im Ruhezustand
+   anhalten und der Timer dann zu spät oder gar nicht feuert:
+     1. ein Timer genau auf 0:00:05,
+     2. ein Ticker, der alle 30 s das Datum vergleicht,
+     3. eine Prüfung, sobald die App wieder nach vorn kommt.
+   ========================================================= */
+let mitternachtTimer = null;
+
+function planeMitternacht(){
+  clearTimeout(mitternachtTimer);
+  const n = new Date();
+  const naechste = new Date(n.getFullYear(), n.getMonth(), n.getDate()+1, 0, 0, 5);
+  mitternachtTimer = setTimeout(tageswechsel, Math.max(1000, naechste - n));
+}
+
+/* Führt den Wechsel aus, wenn sich das Datum wirklich geändert hat. */
+function tageswechsel(){
+  const neuerTag = iso(new Date());
+  if(neuerTag === iso(today)){ planeMitternacht(); return; }
+
+  // Nur mitziehen, wenn die Ansicht auf dem alten "heute" stand.
+  // Wer bewusst einen anderen Tag geöffnet hat, behält ihn.
+  const folgt = iso(cursor) === iso(today);
+  today = new Date();
+  if(folgt) cursor = new Date();
+
+  putzeChecks();
+  save();
+  renderAll();
+  ladeWetter(true);          // Wetter beim Tageswechsel frisch holen
+  planeMitternacht();
+
+  const d = new Date();
+  melde("Neuer Tag: "+DAYS[d.getDay()]+", "+d.getDate()+". "+MON[d.getMonth()], 3500);
+}
+
+/* Ticker: Uhr nachziehen und Datum vergleichen */
+setInterval(()=>{
+  renderClock();
+  if(iso(new Date()) !== iso(today)){ tageswechsel(); return; }
+  if(!document.hidden && iso(cursor) === iso(today)) renderTimeline();  // Jetzt-Linie
+}, 30000);
+
+function pruefeTag(){
+  renderClock();
+  if(iso(new Date()) !== iso(today)) tageswechsel();
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden) return;
+  pruefeTag();
+  ladeWetter(false);         // holt nur, wenn der Stand älter als 30 Minuten ist
+});
+window.addEventListener("focus", pruefeTag);
+window.addEventListener("pageshow", pruefeTag);
+window.addEventListener("online", ()=>ladeWetter(true));
+
+/* =========================================================
+   Einstellungen
+   ========================================================= */
+const felder = {"s-name":"name","s-lang":"lang","s-eth":"eth","s-spo":"spo","s-prof":"prof","s-inf":"inf","s-lat":"lat","s-lon":"lon"};
+Object.entries(felder).forEach(([id,key])=>{
+  const el = document.getElementById(id);
+  el.value = store[key];
+  el.addEventListener("change", ()=>{
+    store[key] = el.value;
+    save();
+    if(key==="lat"||key==="lon") ladeWetter();
+    else renderAll();
+  });
+});
+
+/* =========================================================
+   Kalenderimport verdrahten
+   ========================================================= */
+const icsFile = document.getElementById("ics-file");
+const icsPick = document.getElementById("ics-pick");
+
+icsPick.addEventListener("click", ()=>icsFile.click());
+
+icsFile.addEventListener("change", async ()=>{
+  const f = icsFile.files && icsFile.files[0];
+  if(!f) return;
+  if(f.size > 12*1024*1024){
+    melde("Die Datei ist größer als 12 MB.", 4000);
+    icsFile.value = "";
+    return;
+  }
+  icsPick.disabled = true;
+  icsPick.textContent = "wird gelesen …";
+  try{
+    const text = await f.text();
+    const name = f.name.replace(/\.(ics|ical|ifb)$/i, "");
+    const r = icsImport(text, name);
+    zeigeIcsBericht(r);
+    zeigeIcsQuellen();
+    renderEvents();
+    renderTimeline();
+    melde(r.ok ? r.neu+" neu, "+r.aktualisiert+" aktualisiert." : "Import nicht möglich.", 3500);
+  }catch(err){
+    zeigeIcsBericht({ok:false, meldung:"Die Datei konnte nicht gelesen werden."});
+  }finally{
+    icsPick.disabled = false;
+    icsPick.textContent = "ICS-Datei wählen";
+    icsFile.value = "";
+  }
+});
+
+/* =========================================================
+   Start
+   ========================================================= */
+putzeChecks();
+document.getElementById("ev-date").value = iso(new Date());
+zeigeIcsQuellen();
+renderAll();
+ladeWetter(false);
+planeMitternacht();
+
+/* Offline-Fähigkeit: minimaler Service Worker aus dem Dokument heraus */
+if("serviceWorker" in navigator){
+  const sw = `
+    const C="dash-v1";
+    self.addEventListener("install",e=>{self.skipWaiting()});
+    self.addEventListener("activate",e=>{e.waitUntil(self.clients.claim())});
+    self.addEventListener("fetch",e=>{
+      if(e.request.url.includes("open-meteo")) return;
+      e.respondWith(
+        fetch(e.request).then(r=>{
+          const c=r.clone(); caches.open(C).then(x=>x.put(e.request,c)); return r;
+        }).catch(()=>caches.match(e.request))
+      );
+    });`;
+  const url = URL.createObjectURL(new Blob([sw],{type:"text/javascript"}));
+  navigator.serviceWorker.register(url).catch(()=>{});
+}
+</script>
+</body>
+</html>
