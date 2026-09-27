@@ -1,7 +1,7 @@
 <!--
   PROJEKT: Arne persönliches Dashboard (Schule, Training, Termine, Wetter)
   DATEI:   arne-dashboard.html
-  STAND:   17.08.2026 — Fassung 2
+  STAND:   27.09.2026 — Fassung 5
   KONTEXT: Single-File PWA, Vanilla HTML/CSS/JS, kein Framework, kein Server,
            Speicherung nur per localStorage, DSGVO-konform, einzige externe
            Verbindung ist die Open-Meteo Wetter-API (ohne API-Key).
@@ -24,6 +24,26 @@
    - Abhak-Verlauf wird auf 120 Tage begrenzt.
    - Touchflächen auf mindestens 44 px gebracht (Abhaken, Tagesnavigation,
      Löschen).
+
+  NEU IN FASSUNG 5 (27.09.2026):
+   - Reihenfolge: Wetter & Moped ganz oben, dann Tagesplan, Training,
+     Lernen, Termine, Schritte, Morgen-News, Regenradar ganz unten.
+   - Morgen-News: liest news.json aus demselben Repo (Krieg & Welt,
+     Deutschland-Politik, Finanzen & Aktien, KI), Vorlesen per
+     Sprachausgabe des Geräts. news.json wird jede Nacht um 0 Uhr von
+     einer geplanten Claude-Aufgabe neu geschrieben und gepusht.
+   - Tech-Look: Raster-Hintergrund, Scan-Licht im Kopf, Live-Punkt,
+     HUD-Zeile (KW, Tag, Wochenfortschritt), nummerierte Abschnitte,
+     Eckmarken an den Karten, Radar mit Sweep, Ringen und Zeitleiste.
+
+  NEU IN FASSUNG 4:
+   - Wetterradar ergänzt: animierte Regen-Kacheln (RainViewer) über einer
+     OpenStreetMap-Kachelkarte um den eingestellten Standort, reines Canvas,
+     keine Kartenbibliothek. Zeigt die letzten Regen-Frames als Loop, damit
+     erkennbar ist, aus welcher Richtung eine Front kommt.
+   - Schritte-Wochenübersicht ergänzt: Schrittzahl + Uhrzeit werden von Hand
+     eingetragen (Browser hat keinen Zugriff auf Health-Daten) und pro Tag
+     gespeichert, Anzeige als 7-Tage-Streifen wie beim Wetter.
 
   NEU IN FASSUNG 3 — Tagesablauf nach Arnes Angaben:
    - Heimkunft mit dem Bus hinterlegt: Mo 16:00, Di 14:20, Mi 16:00,
@@ -157,6 +177,31 @@ section{margin-top:22px}
 .wx-day .t small{color:var(--ink-faint);font-weight:400}
 .wx-day .r{font-size:11px;color:#7FA8C9;margin-top:3px}
 .wx-day .dot{width:6px;height:6px;border-radius:50%;margin:6px auto 0}
+
+.radar-head{display:flex;align-items:center;justify-content:space-between;padding:13px 18px 8px;border-top:1px solid var(--line)}
+.radar-title{font-size:13px;color:var(--ink-dim)}
+.radar-play{
+  width:34px;height:34px;flex:none;border-radius:50%;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--ink);font-size:13px;cursor:pointer;
+}
+.radar-play:active{background:var(--bg)}
+.radar-box{position:relative;margin:0 18px 8px;border-radius:12px;overflow:hidden;background:var(--panel-2)}
+#radar-canvas{display:block;width:100%;height:auto;aspect-ratio:1/1}
+.radar-time{
+  position:absolute;left:10px;bottom:9px;background:rgba(18,16,14,.72);
+  color:var(--ink);font-size:12px;padding:4px 9px;border-radius:8px;
+}
+.radar-note{font-size:10.5px;color:var(--ink-faint);padding:0 18px 15px}
+
+.st-week{display:flex;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+.st-week::-webkit-scrollbar{display:none}
+.st-day{flex:1 0 13%;min-width:62px;text-align:center;padding:14px 4px;border-right:1px solid var(--line)}
+.st-day:last-child{border-right:0}
+.st-day.is-today{background:rgba(240,147,43,.08)}
+.st-day .d{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+.st-day.is-today .d{color:var(--amber)}
+.st-day .n{font-size:14px;font-weight:600;margin-top:7px}
+.st-day .z{font-size:10.5px;color:var(--ink-faint);margin-top:2px}
 
 /* ---------- Tagesnavigation ---------- */
 .daynav{display:flex;align-items:center;gap:8px;padding:0 4px 12px}
@@ -362,22 +407,163 @@ footer{padding:26px 20px 10px;text-align:center;font-size:11px;color:var(--ink-f
   @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 }
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+/* =========================================================
+   Fassung 5 — Tech-Look: Raster, Leuchtkanten, Eckmarken,
+   Sektionsnummern, Radar-Sweep. Farben bleiben gleich.
+   ========================================================= */
+body{position:relative}
+.bg-grid{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(60% 40% at 85% 0%, rgba(240,147,43,.10), transparent 70%),
+    radial-gradient(50% 35% at 0% 60%, rgba(194,65,12,.06), transparent 70%),
+    linear-gradient(rgba(240,147,43,.045) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg, rgba(240,147,43,.045) 1px, transparent 1px) 0 0/28px 28px,
+    var(--bg);
+}
+html,body{background:transparent}
+html{background:var(--bg)}
+
+header{overflow:hidden;background:
+    radial-gradient(120% 90% at 88% -10%, rgba(240,147,43,.22), transparent 60%),
+    linear-gradient(180deg,rgba(25,21,18,.92),rgba(18,16,14,.6))}
+header::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--amber) 30%,var(--amber-soft) 50%,var(--amber) 70%,transparent);
+  opacity:.55;
+}
+.scan{
+  position:absolute;top:0;bottom:0;width:38%;left:-40%;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(240,147,43,.09),transparent);
+}
+.eyebrow{display:flex;align-items:center;gap:8px}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 0 0 rgba(240,147,43,.6);
+}
+.clock{text-shadow:0 0 18px rgba(240,147,43,.35)}
+.hud{
+  margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 14px;
+  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
+}
+.hud b{color:var(--amber-soft);font-weight:600}
+
+.sec-head h2{display:flex;align-items:center;gap:10px}
+.sec-head .idx{
+  font-size:10.5px;letter-spacing:.06em;color:var(--amber);
+  border:1px solid rgba(240,147,43,.35);border-radius:5px;padding:1px 5px;
+  background:rgba(240,147,43,.07);
+}
+.sec-head{position:relative}
+.sec-head::after{
+  content:"";position:absolute;left:4px;right:4px;bottom:3px;height:1px;
+  background:linear-gradient(90deg,rgba(240,147,43,.35),rgba(51,46,39,.8) 35%,transparent);
+}
+
+.card{
+  position:relative;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.025),transparent 40%),
+    var(--panel);
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 10px 30px -18px rgba(0,0,0,.9);
+  transition:border-color .25s ease, box-shadow .25s ease;
+}
+.card::before,.card::after{
+  content:"";position:absolute;width:14px;height:14px;pointer-events:none;z-index:3;
+  border-color:var(--amber);border-style:solid;opacity:.75;
+}
+.card::before{top:0;left:0;border-width:2px 0 0 2px;border-top-left-radius:15px}
+.card::after{bottom:0;right:0;border-width:0 2px 2px 0;border-bottom-right-radius:15px}
+.card:hover{border-color:rgba(240,147,43,.35);box-shadow:0 0 0 1px rgba(240,147,43,.08), 0 10px 34px -16px rgba(240,147,43,.25)}
+
+.wx-day.is-today,.st-day.is-today{box-shadow:inset 0 -2px 0 var(--amber)}
+
+/* ---------- Morgen-News ---------- */
+.news-tabs{display:flex;gap:6px;padding:12px 12px 10px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}
+.news-tabs::-webkit-scrollbar{display:none}
+.news-tab{
+  flex:none;min-height:36px;padding:0 13px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);
+  font-family:inherit;font-size:13px;display:flex;align-items:center;gap:7px;
+}
+.news-tab i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.news-tab[aria-selected="true"]{color:var(--ink);border-color:rgba(240,147,43,.55);background:rgba(240,147,43,.12)}
+.news-list{min-height:120px}
+.news-item{padding:14px 18px;border-bottom:1px solid var(--line);position:relative}
+.news-item:last-child{border-bottom:0}
+.news-item::before{
+  content:"";position:absolute;left:0;top:16px;bottom:16px;width:2px;border-radius:2px;
+  background:var(--nc, var(--amber));opacity:.8;
+}
+.news-item h3{font-size:15px;font-weight:600;line-height:1.3}
+.news-item p{font-size:14px;color:var(--ink-dim);margin-top:5px;line-height:1.5}
+.news-item a{font-size:11.5px;color:var(--amber);text-decoration:none;display:inline-block;margin-top:7px;letter-spacing:.02em}
+.news-foot{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--line);background:var(--panel-2)}
+.news-read{
+  flex:none;min-height:40px;padding:0 14px;border-radius:10px;cursor:pointer;font-family:inherit;
+  border:1px solid rgba(240,147,43,.45);background:transparent;color:var(--amber);font-size:13.5px;font-weight:600;
+}
+.news-read.on{background:var(--amber);color:#1A1206}
+.news-src{font-size:11.5px;color:var(--ink-faint);flex:1;min-width:0}
+
+/* ---------- Radar im eigenen Abschnitt ---------- */
+.radar-head{border-top:0;padding-top:14px}
+.radar-box{box-shadow:inset 0 0 0 1px var(--line)}
+#radar-canvas{filter:saturate(.85) contrast(1.05)}
+.radar-box::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 24.6%, rgba(240,147,43,.28) 24.8% 25%, transparent 25.2% 49.6%, rgba(240,147,43,.22) 49.8% 50%, transparent 50.2%),
+    linear-gradient(transparent 49.85%, rgba(240,147,43,.18) 50%, transparent 50.15%),
+    linear-gradient(90deg, transparent 49.85%, rgba(240,147,43,.18) 50%, transparent 50.15%),
+    radial-gradient(circle at 50% 50%, transparent 55%, rgba(18,16,14,.55) 100%);
+}
+.radar-sweep{
+  position:absolute;inset:0;pointer-events:none;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(240,147,43,.0) 0deg, rgba(240,147,43,.0) 300deg, rgba(240,147,43,.22) 360deg);
+  mix-blend-mode:screen;opacity:.8;
+}
+.radar-pin{
+  position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;
+  background:var(--amber);box-shadow:0 0 0 3px rgba(18,16,14,.8), 0 0 14px 3px rgba(240,147,43,.7);z-index:2;
+}
+.radar-bar{display:flex;gap:4px;padding:0 18px 10px}
+.radar-bar span{flex:1;height:4px;border-radius:2px;background:var(--line);transition:background .2s}
+.radar-bar span.on{background:var(--amber);box-shadow:0 0 8px rgba(240,147,43,.6)}
+.radar-bar span.done{background:rgba(240,147,43,.35)}
+
+@media (prefers-reduced-motion:no-preference){
+  .scan{animation:scan 7s ease-in-out infinite}
+  @keyframes scan{0%{left:-40%}55%,100%{left:110%}}
+  .live-dot{animation:ping 2.2s ease-out infinite}
+  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(240,147,43,.6)}80%,100%{box-shadow:0 0 0 9px rgba(240,147,43,0)}}
+  .radar-sweep{animation:sweep 4s linear infinite}
+  @keyframes sweep{to{transform:rotate(360deg)}}
+  .bg-grid{animation:drift 40s linear infinite}
+  @keyframes drift{to{background-position:0 0,0 0,0 28px,28px 0,0 0}}
+  .news-item{animation:rise .35s cubic-bezier(.2,.7,.3,1) both}
+}
 </style>
 </head>
 <body>
 
+<div class="bg-grid" aria-hidden="true"></div>
+
 <header>
-  <div class="eyebrow" id="eyebrow">Dashboard</div>
+  <div class="scan" aria-hidden="true"></div>
+  <div class="eyebrow"><span class="live-dot" aria-hidden="true"></span><span id="eyebrow">Dashboard</span></div>
   <h1 id="greeting">Guten Tag</h1>
   <div class="subline" id="dateline">—</div>
   <div class="clock mono" id="clock">--:--<small>Ortszeit</small></div>
+  <div class="hud mono" id="hud" aria-hidden="true"></div>
 </header>
 
 <div class="wrap">
 
-  <!-- Wetter -->
+  <!-- 01 Wetter & Moped -->
   <section>
-    <div class="sec-head"><h2>Wetter &amp; Moped</h2><span class="meta" id="wx-place">Wurzen</span></div>
+    <div class="sec-head"><h2><span class="idx mono">01</span>Wetter &amp; Moped</h2><span class="meta" id="wx-place">Wurzen</span></div>
     <div class="card">
       <div class="wx-top">
         <div class="wx-temp mono" id="wx-now">–<span>°</span></div>
@@ -394,9 +580,9 @@ footer{padding:26px 20px 10px;text-align:center;font-size:11px;color:var(--ink-f
     </div>
   </section>
 
-  <!-- Tagesplan -->
+  <!-- 02 Tagesplan -->
   <section>
-    <div class="sec-head"><h2>Tagesplan</h2><span class="meta" id="plan-meta"></span></div>
+    <div class="sec-head"><h2><span class="idx mono">02</span>Tagesplan</h2><span class="meta" id="plan-meta"></span></div>
     <div class="daynav">
       <button id="prev" aria-label="Vorheriger Tag">‹</button>
       <div class="label"><b id="nav-day">—</b><span id="nav-date">—</span></div>
@@ -415,21 +601,21 @@ footer{padding:26px 20px 10px;text-align:center;font-size:11px;color:var(--ink-f
     </div>
   </section>
 
-  <!-- Lernen -->
+  <!-- 03 Training -->
   <section>
-    <div class="sec-head"><h2>Lernen</h2><span class="meta" id="lern-meta"></span></div>
-    <div class="card" id="lernplan"></div>
-  </section>
-
-  <!-- Training -->
-  <section>
-    <div class="sec-head"><h2>Training</h2><span class="meta" id="tr-meta"></span></div>
+    <div class="sec-head"><h2><span class="idx mono">03</span>Training</h2><span class="meta" id="tr-meta"></span></div>
     <div class="card" id="training"></div>
   </section>
 
-  <!-- Termine -->
+  <!-- 04 Lernen -->
   <section>
-    <div class="sec-head"><h2>Termine</h2><span class="meta">nächste 14 Tage</span></div>
+    <div class="sec-head"><h2><span class="idx mono">04</span>Lernen</h2><span class="meta" id="lern-meta"></span></div>
+    <div class="card" id="lernplan"></div>
+  </section>
+
+  <!-- 05 Termine -->
+  <section>
+    <div class="sec-head"><h2><span class="idx mono">05</span>Termine</h2><span class="meta">nächste 14 Tage</span></div>
     <div class="card">
       <div id="events"></div>
       <form class="add" id="ev-form">
@@ -441,6 +627,53 @@ footer{padding:26px 20px 10px;text-align:center;font-size:11px;color:var(--ink-f
         <input id="ev-place" placeholder="Ort (optional)" style="margin-bottom:8px">
         <button class="primary" type="submit">Termin hinzufügen</button>
       </form>
+    </div>
+  </section>
+
+  <!-- 06 Schritte -->
+  <section>
+    <div class="sec-head"><h2><span class="idx mono">06</span>Schritte</h2><span class="meta">Wochenübersicht</span></div>
+    <div class="card">
+      <div class="st-week" id="st-week"></div>
+      <form class="add" id="st-form">
+        <div class="row">
+          <input id="st-count" type="number" inputmode="numeric" min="0" max="99999" placeholder="Schritte heute" required>
+          <input id="st-time" type="time" required>
+        </div>
+        <button class="primary" type="submit">Speichern</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 07 Morgen-News -->
+  <section>
+    <div class="sec-head"><h2><span class="idx mono">07</span>Morgen-News</h2><span class="meta mono" id="news-meta">—</span></div>
+    <div class="card">
+      <div class="news-tabs" id="news-tabs" role="tablist"></div>
+      <div class="news-list" id="news-list"><div class="empty">News werden geladen …</div></div>
+      <div class="news-foot">
+        <button type="button" class="news-read" id="news-read">▶ Vorlesen</button>
+        <span class="news-src" id="news-src"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 Regenradar -->
+  <section>
+    <div class="sec-head"><h2><span class="idx mono">08</span>Regenradar</h2><span class="meta">letzte ~80 Min</span></div>
+    <div class="card">
+      <div class="radar-head">
+        <span class="radar-title">Niederschlag rund um deinen Standort</span>
+        <button type="button" class="radar-play" id="radar-play" aria-label="Animation pausieren">⏸</button>
+      </div>
+      <div class="radar-box">
+        <canvas id="radar-canvas" width="768" height="768"></canvas>
+        <div class="radar-sweep" aria-hidden="true"></div>
+        <div class="radar-pin" aria-hidden="true"></div>
+        <div class="radar-time mono" id="radar-time">Radar wird geladen …</div>
+      </div>
+      <div class="radar-bar" id="radar-bar"></div>
+      <div class="radar-note">© OpenStreetMap-Mitwirkende · Regendaten: RainViewer.com</div>
     </div>
   </section>
 
@@ -509,7 +742,7 @@ footer{padding:26px 20px 10px;text-align:center;font-size:11px;color:var(--ink-f
         <input id="s-lon" inputmode="decimal" placeholder="12.7400">
       </div>
 
-      <p class="hint">Alles wird nur auf diesem Gerät gespeichert. Kein Konto, keine Cookies, kein Server. Wetterdaten kommen von Open-Meteo und werden ohne Schlüssel und ohne Weitergabe persönlicher Daten abgerufen.</p>
+      <p class="hint">Alles wird nur auf diesem Gerät gespeichert. Kein Konto, keine Cookies, kein Server. Wetterdaten kommen von Open-Meteo, das Regenradar nutzt Kartenkacheln von OpenStreetMap und Regendaten von RainViewer – alles ohne Schlüssel, Konto oder Weitergabe persönlicher Daten.</p>
     </div>
   </details>
 
@@ -540,7 +773,9 @@ const defaults = () => ({
   events: [],
   checks: {},
   icsSources: [],   // importierte Kalender: [{id,name,at}]
-  wx: null          // letzter Wetterstand, damit offline etwas da ist
+  wx: null,         // letzter Wetterstand, damit offline etwas da ist
+  schritte: {},     // Datum (YYYY-MM-DD) -> {anzahl, zeit}
+  news: null        // letzte Morgen-News aus news.json
 });
 let store = load();
 let speicherOk = true;
@@ -555,6 +790,7 @@ function load(){
     if(!Array.isArray(s.events)) s.events = [];
     if(!s.checks || typeof s.checks !== "object") s.checks = {};
     if(!Array.isArray(s.icsSources)) s.icsSources = [];
+    if(!s.schritte || typeof s.schritte !== "object") s.schritte = {};
     return s;
   }catch(e){ return defaults(); }
 }
@@ -588,6 +824,13 @@ function putzeChecks(){
     if(/^\d{4}-\d{2}-\d{2}$/.test(d) && d < grenze){ delete store.checks[k]; weg++; }
   }
   return weg;
+}
+
+function putzeSchritte(){
+  const grenze = iso(addDays(new Date(), -120));
+  for(const k of Object.keys(store.schritte)){
+    if(/^\d{4}-\d{2}-\d{2}$/.test(k) && k < grenze) delete store.schritte[k];
+  }
 }
 
 /* =========================================================
@@ -1655,6 +1898,315 @@ function zeigeWetter(w, stand){
 }
 
 /* =========================================================
+   Wetterradar — RainViewer-Regenkacheln über OpenStreetMap,
+   reines <canvas>, keine Kartenbibliothek. Zeigt die letzten
+   Regen-Frames als Loop um den in den Einstellungen hinterlegten
+   Standort, damit erkennbar ist, aus welcher Richtung eine
+   Regenfront kommt (wie bei Wetter Online).
+   ========================================================= */
+const RADAR_Z = 7; // Zoomstufe: zeigt die Region, nicht nur den Ort
+const radarCanvas = document.getElementById("radar-canvas");
+const radarCtx = radarCanvas ? radarCanvas.getContext("2d") : null;
+let radarFrames = [];        // [{time, host, pfad}]
+let radarBaseTiles = [];     // [{img, cx, cy}]
+let radarBildCache = {};     // url -> Image
+let radarIdx = 0;
+let radarSpielt = true;
+let radarTimer = null;
+
+const long2tile = (lon,z) => (lon+180)/360*Math.pow(2,z);
+const lat2tile  = (lat,z) => {
+  const r = lat*Math.PI/180;
+  return (1 - Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z);
+};
+
+function radarKacheln(z){
+  const lat = Number(store.lat) || defaults().lat;
+  const lon = Number(store.lon) || defaults().lon;
+  const fx = long2tile(lon,z), fy = lat2tile(lat,z);
+  const tx = Math.floor(fx), ty = Math.floor(fy);
+  const offX = (fx-tx)*256, offY = (fy-ty)*256;
+  const n = Math.pow(2,z);
+  const raus = [];
+  for(let dy=-1; dy<=1; dy++){
+    const y = ty+dy;
+    if(y<0 || y>=n) continue;
+    for(let dx=-1; dx<=1; dx++){
+      raus.push({x:(tx+dx+n)%n, y, cx:384-offX+dx*256, cy:384-offY+dy*256});
+    }
+  }
+  return raus;
+}
+
+function ladeBild(url){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload  = ()=>resolve(img);
+    img.onerror = ()=>resolve(null);
+    img.src = url;
+  });
+}
+
+async function radarBasiskarteLaden(){
+  if(!radarCtx) return;
+  radarBaseTiles = await Promise.all(radarKacheln(RADAR_Z).map(async k=>({
+    img: await ladeBild("https://tile.openstreetmap.org/"+RADAR_Z+"/"+k.x+"/"+k.y+".png"),
+    cx: k.cx, cy: k.cy
+  })));
+  radarZeichnen();
+}
+
+const radarUrl = (frame,k) => frame.host+frame.pfad+"/256/"+RADAR_Z+"/"+k.x+"/"+k.y+"/2/1_1.png";
+
+/* Lädt alle Regenkacheln aller Frames vorab, damit die Animation
+   ohne Flackern und ohne halbe Bilder läuft. */
+async function radarVorladen(){
+  const kacheln = radarKacheln(RADAR_Z);
+  const jobs = [];
+  radarFrames.forEach(f=>kacheln.forEach(k=>{
+    const url = radarUrl(f,k);
+    if(!(url in radarBildCache)) jobs.push(ladeBild(url).then(img=>{ radarBildCache[url] = img; }));
+  }));
+  await Promise.all(jobs);
+}
+
+function radarZeichnen(){
+  if(!radarCtx || !radarBaseTiles.length) return;
+  radarCtx.clearRect(0,0,768,768);
+  radarBaseTiles.forEach(t=>{ if(t.img) radarCtx.drawImage(t.img, t.cx, t.cy, 256, 256); });
+  // Karte etwas abdunkeln, damit sie zum dunklen Dashboard passt
+  radarCtx.fillStyle = "rgba(18,16,14,.38)";
+  radarCtx.fillRect(0,0,768,768);
+
+  const frame = radarFrames[radarIdx];
+  if(!frame) return;
+  radarCtx.globalAlpha = 0.85;
+  radarKacheln(RADAR_Z).forEach(k=>{
+    const img = radarBildCache[radarUrl(frame,k)];
+    if(img) radarCtx.drawImage(img, k.cx, k.cy, 256, 256);
+  });
+  radarCtx.globalAlpha = 1;
+
+  const d = new Date(frame.time*1000);
+  const jetzt = radarIdx === radarFrames.length-1;
+  const zeit = document.getElementById("radar-time");
+  if(zeit) zeit.textContent = (jetzt?"Jetzt · ":"vor "+Math.round((Date.now()/1000-frame.time)/60)+" Min · ")
+    + String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr";
+
+  const bar = document.getElementById("radar-bar");
+  if(bar){
+    if(bar.children.length !== radarFrames.length){
+      bar.innerHTML = radarFrames.map(()=>"<span></span>").join("");
+    }
+    [...bar.children].forEach((s,i)=>{ s.className = i===radarIdx ? "on" : (i<radarIdx ? "done" : ""); });
+  }
+}
+
+async function radarFramesLaden(){
+  try{
+    const ctrl = new AbortController();
+    const abbruch = setTimeout(()=>ctrl.abort(), 12000);
+    const res = await fetch("https://api.rainviewer.com/public/weather-maps.json", {signal:ctrl.signal, cache:"no-store"});
+    clearTimeout(abbruch);
+    const j = await res.json();
+    const past = (j.radar && j.radar.past) || [];
+    const host = j.host || "https://tilecache.rainviewer.com";
+    radarBildCache = {};
+    radarFrames = past.slice(-8).map(f=>({time:f.time, pfad:f.path, host}));
+    radarIdx = Math.max(0, radarFrames.length-1);
+    await radarVorladen();
+    radarZeichnen();
+    radarAnimationStarten();
+  }catch(e){
+    const zeit = document.getElementById("radar-time");
+    if(zeit) zeit.textContent = "Radar gerade nicht erreichbar";
+  }
+}
+
+function radarAnimationStarten(){
+  clearInterval(radarTimer);
+  if(!radarSpielt || radarFrames.length<2) return;
+  radarTimer = setInterval(()=>{
+    radarIdx = (radarIdx+1) % radarFrames.length;
+    radarZeichnen();
+  }, 700);
+}
+
+async function radarStart(){
+  await radarBasiskarteLaden();
+  await radarFramesLaden();
+}
+
+const radarPlayBtn = document.getElementById("radar-play");
+if(radarPlayBtn) radarPlayBtn.addEventListener("click", ()=>{
+  radarSpielt = !radarSpielt;
+  radarPlayBtn.textContent = radarSpielt ? "⏸" : "▶";
+  radarAnimationStarten();
+});
+
+/* =========================================================
+   Morgen-News — liest news.json aus demselben Repo.
+   Die Datei wird jede Nacht um 0 Uhr von einer geplanten
+   Claude-Aufgabe neu geschrieben. Kein Drittanbieter, gleiche
+   Herkunft wie das Dashboard, letzter Stand bleibt offline da.
+   ========================================================= */
+const NEWS_FARBEN = {krieg:"#D65A4A", politik:"#6FA3D8", finanzen:"#5FBF7F", aktien:"#5FBF7F", ki:"#B58AE0"};
+let newsDaten = null;
+let newsTab = 0;
+
+async function ladeNews(){
+  if(store.news) zeigeNews(store.news);
+  try{
+    const ctrl = new AbortController();
+    const abbruch = setTimeout(()=>ctrl.abort(), 12000);
+    const res = await fetch("news.json?t="+Date.now(), {signal:ctrl.signal, cache:"no-store"});
+    clearTimeout(abbruch);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const j = await res.json();
+    if(!j || !Array.isArray(j.bloecke)) throw new Error("Format");
+    store.news = j;
+    save();
+    zeigeNews(j);
+  }catch(e){
+    if(!store.news){
+      document.getElementById("news-list").innerHTML =
+        '<div class="empty">Noch keine News da. Die erste Ausgabe kommt nach dem nächsten Lauf um 0 Uhr.</div>';
+      document.getElementById("news-meta").textContent = "—";
+    }
+  }
+}
+
+function newsDatumText(j){
+  if(!j.datum) return "";
+  const [y,m,d] = j.datum.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  const heute = iso(new Date()) === j.datum;
+  return (heute ? "Heute" : DAYS3[dt.getDay()]+" "+d+"."+m+".")
+    + (j.erstellt ? " · "+j.erstellt.slice(11,16)+" Uhr" : "");
+}
+
+function zeigeNews(j){
+  newsDaten = j;
+  if(newsTab >= j.bloecke.length) newsTab = 0;
+  document.getElementById("news-meta").textContent = newsDatumText(j);
+
+  const tabs = document.getElementById("news-tabs");
+  tabs.innerHTML = "";
+  j.bloecke.forEach((b,i)=>{
+    const bt = document.createElement("button");
+    bt.type = "button";
+    bt.className = "news-tab";
+    bt.setAttribute("role","tab");
+    bt.setAttribute("aria-selected", i===newsTab ? "true" : "false");
+    const dot = document.createElement("i");
+    dot.style.background = NEWS_FARBEN[b.id] || "var(--amber)";
+    bt.appendChild(dot);
+    bt.appendChild(document.createTextNode(b.titel || b.id));
+    bt.addEventListener("click", ()=>{ newsTab = i; vorlesenStopp(); zeigeNews(newsDaten); });
+    tabs.appendChild(bt);
+  });
+
+  const b = j.bloecke[newsTab];
+  const liste = document.getElementById("news-list");
+  liste.innerHTML = "";
+  (b.punkte || []).forEach((p,i)=>{
+    const art = document.createElement("article");
+    art.className = "news-item";
+    art.style.setProperty("--nc", NEWS_FARBEN[b.id] || "var(--amber)");
+    art.style.animationDelay = (i*0.05)+"s";
+    const h3 = document.createElement("h3"); h3.textContent = p.titel || "";
+    const tx = document.createElement("p");  tx.textContent = p.text || "";
+    art.append(h3, tx);
+    if(p.quelle && /^https?:\/\//.test(p.quelle)){
+      const a = document.createElement("a");
+      a.href = p.quelle; a.target = "_blank"; a.rel = "noopener noreferrer";
+      try{ a.textContent = "Quelle: " + new URL(p.quelle).hostname.replace(/^www\./,"") + " ↗"; }
+      catch(e){ a.textContent = "Quelle ↗"; }
+      art.appendChild(a);
+    }
+    liste.appendChild(art);
+  });
+  if(!(b.punkte||[]).length) liste.innerHTML = '<div class="empty">In diesem Bereich gibt es heute nichts Neues.</div>';
+
+  document.getElementById("news-src").textContent =
+    j.hinweis || "Automatisch zusammengefasst von Claude · ohne Gewähr";
+}
+
+/* Vorlesen über die Sprachausgabe des Geräts (läuft lokal, nichts geht raus) */
+const newsReadBtn = document.getElementById("news-read");
+function vorlesenStopp(){
+  if("speechSynthesis" in window) speechSynthesis.cancel();
+  if(newsReadBtn){ newsReadBtn.classList.remove("on"); newsReadBtn.textContent = "▶ Vorlesen"; }
+}
+if(newsReadBtn) newsReadBtn.addEventListener("click", ()=>{
+  if(!("speechSynthesis" in window)){ melde("Vorlesen wird auf diesem Gerät nicht unterstützt.", 3000); return; }
+  if(speechSynthesis.speaking){ vorlesenStopp(); return; }
+  if(!newsDaten) return;
+  const b = newsDaten.bloecke[newsTab];
+  const text = (b.titel||"") + ". " + (b.punkte||[]).map(p=>(p.titel||"")+". "+(p.text||"")).join(" ");
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "de-DE";
+  const stimme = speechSynthesis.getVoices().find(v=>v.lang && v.lang.startsWith("de"));
+  if(stimme) u.voice = stimme;
+  u.rate = 1.0;
+  u.onend = vorlesenStopp;
+  u.onerror = vorlesenStopp;
+  newsReadBtn.classList.add("on");
+  newsReadBtn.textContent = "■ Stopp";
+  speechSynthesis.speak(u);
+});
+
+/* =========================================================
+   Schritte — von Hand erfasst (der Browser hat keinen Zugriff
+   auf Health-/Fitnessdaten des Geräts), Wochenübersicht wie
+   beim Wetter.
+   ========================================================= */
+function renderSchritteWoche(){
+  const wk = document.getElementById("st-week");
+  if(!wk) return;
+  wk.innerHTML = "";
+  for(let i=6; i>=0; i--){
+    const d = addDays(new Date(), -i);
+    const key = iso(d);
+    const eintrag = store.schritte[key];
+    const istHeute = i===0;
+    const col = document.createElement("div");
+    col.className = "st-day"+(istHeute?" is-today":"");
+    col.innerHTML =
+      '<div class="d">'+(istHeute?"Heute":DAYS3[d.getDay()])+'</div>'+
+      '<div class="n mono">'+(eintrag ? eintrag.anzahl.toLocaleString("de-DE") : "–")+'</div>'+
+      '<div class="z mono">'+(eintrag && eintrag.zeit ? eintrag.zeit+" Uhr" : "")+'</div>';
+    wk.appendChild(col);
+  }
+}
+
+function schritteHeuteVorbelegen(){
+  const key = iso(new Date());
+  const eintrag = store.schritte[key];
+  const nEl = document.getElementById("st-count");
+  const zEl = document.getElementById("st-time");
+  if(!nEl || !zEl) return;
+  nEl.value = eintrag ? eintrag.anzahl : "";
+  const n = new Date();
+  zEl.value = eintrag ? eintrag.zeit
+    : String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");
+}
+
+const stForm = document.getElementById("st-form");
+if(stForm) stForm.addEventListener("submit", e=>{
+  e.preventDefault();
+  const n = parseInt(document.getElementById("st-count").value, 10);
+  if(!Number.isFinite(n) || n<0){ melde("Bitte eine gültige Schrittzahl eingeben.", 3000); return; }
+  const zeit = document.getElementById("st-time").value || "00:00";
+  store.schritte[iso(new Date())] = {anzahl:n, zeit:zeit};
+  putzeSchritte();
+  save();
+  renderSchritteWoche();
+  melde("Schritte gespeichert.", 2000);
+});
+
+/* =========================================================
    Kopfzeile, Navigation, Mitternachts-Wechsel
    ========================================================= */
 function renderHeader(){
@@ -1664,6 +2216,19 @@ function renderHeader(){
   document.getElementById("greeting").textContent = gruss + ", " + (store.name || "Arne");
   document.getElementById("eyebrow").textContent = DAYS[n.getDay()];
   document.getElementById("dateline").textContent = n.getDate()+". "+MON[n.getMonth()]+" "+n.getFullYear();
+
+  // HUD-Zeile: Kalenderwoche, Tag im Jahr, Fortschritt der Woche
+  const t = new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
+  const wd = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - wd);
+  const kw = Math.ceil(((t - Date.UTC(t.getUTCFullYear(),0,1)) / 864e5 + 1) / 7);
+  const jahresTag = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - new Date(n.getFullYear(),0,1)) / 864e5) + 1;
+  const wochenMin = ((n.getDay()+6)%7)*1440 + n.getHours()*60 + n.getMinutes();
+  const hud = document.getElementById("hud");
+  if(hud) hud.innerHTML =
+    '<span>KW <b>'+kw+'</b></span>'+
+    '<span>Tag <b>'+jahresTag+'</b></span>'+
+    '<span>Woche <b>'+Math.round(wochenMin/100.8)+'%</b></span>';
 }
 function renderClock(){
   const n = new Date();
@@ -1681,7 +2246,7 @@ function renderNav(){
 }
 /* Alles, was am angezeigten Tag hängt */
 function renderTag(){ renderNav(); renderTimeline(); renderTraining(); renderLernen(); }
-function renderAll(){ renderHeader(); renderClock(); renderTag(); renderEvents(); }
+function renderAll(){ renderHeader(); renderClock(); renderTag(); renderEvents(); renderSchritteWoche(); }
 
 document.getElementById("prev").addEventListener("click", ()=>{ cursor = addDays(cursor,-1); renderTag(); });
 document.getElementById("next").addEventListener("click", ()=>{ cursor = addDays(cursor, 1); renderTag(); });
@@ -1728,9 +2293,12 @@ function tageswechsel(){
   if(folgt) cursor = new Date();
 
   putzeChecks();
+  putzeSchritte();
   save();
   renderAll();
   ladeWetter(true);          // Wetter beim Tageswechsel frisch holen
+  schritteHeuteVorbelegen(); // Eingabefeld auf den neuen Tag zurücksetzen
+  ladeNews();
   planeMitternacht();
 
   const d = new Date();
@@ -1752,6 +2320,7 @@ document.addEventListener("visibilitychange", ()=>{
   if(document.hidden) return;
   pruefeTag();
   ladeWetter(false);         // holt nur, wenn der Stand älter als 30 Minuten ist
+  ladeNews();
 });
 window.addEventListener("focus", pruefeTag);
 window.addEventListener("pageshow", pruefeTag);
@@ -1767,7 +2336,7 @@ Object.entries(felder).forEach(([id,key])=>{
   el.addEventListener("change", ()=>{
     store[key] = el.value;
     save();
-    if(key==="lat"||key==="lon") ladeWetter();
+    if(key==="lat"||key==="lon"){ ladeWetter(); radarStart(); }
     else renderAll();
   });
 });
@@ -1812,10 +2381,15 @@ icsFile.addEventListener("change", async ()=>{
    Start
    ========================================================= */
 putzeChecks();
+putzeSchritte();
 document.getElementById("ev-date").value = iso(new Date());
 zeigeIcsQuellen();
 renderAll();
 ladeWetter(false);
+schritteHeuteVorbelegen();
+ladeNews();
+radarStart();
+setInterval(radarFramesLaden, 10*60*1000); // neue Regen-Frames alle 10 Min
 planeMitternacht();
 
 /* Offline-Fähigkeit: minimaler Service Worker aus dem Dokument heraus */
@@ -1825,7 +2399,8 @@ if("serviceWorker" in navigator){
     self.addEventListener("install",e=>{self.skipWaiting()});
     self.addEventListener("activate",e=>{e.waitUntil(self.clients.claim())});
     self.addEventListener("fetch",e=>{
-      if(e.request.url.includes("open-meteo")) return;
+      if(e.request.url.includes("open-meteo") || e.request.url.includes("tile.openstreetmap.org")
+         || e.request.url.includes("rainviewer") || e.request.url.includes("news.json")) return;
       e.respondWith(
         fetch(e.request).then(r=>{
           const c=r.clone(); caches.open(C).then(x=>x.put(e.request,c)); return r;
