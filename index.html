@@ -607,15 +607,28 @@ header::after{
     <div class="card" id="training"></div>
   </section>
 
-  <!-- 04 Lernen -->
+  <!-- 04 Morgen-News -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">04</span>Lernen</h2><span class="meta" id="lern-meta"></span></div>
+    <div class="sec-head"><h2><span class="idx mono">04</span>Morgen-News</h2><span class="meta mono" id="news-meta">—</span></div>
+    <div class="card">
+      <div class="news-tabs" id="news-tabs" role="tablist"></div>
+      <div class="news-list" id="news-list"><div class="empty">News werden geladen …</div></div>
+      <div class="news-foot">
+        <button type="button" class="news-read" id="news-read">▶ Vorlesen</button>
+        <span class="news-src" id="news-src"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 Lernen -->
+  <section>
+    <div class="sec-head"><h2><span class="idx mono">05</span>Lernen</h2><span class="meta" id="lern-meta"></span></div>
     <div class="card" id="lernplan"></div>
   </section>
 
-  <!-- 05 Termine -->
+  <!-- 06 Termine -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">05</span>Termine</h2><span class="meta">nächste 14 Tage</span></div>
+    <div class="sec-head"><h2><span class="idx mono">06</span>Termine</h2><span class="meta">nächste 14 Tage</span></div>
     <div class="card">
       <div id="events"></div>
       <form class="add" id="ev-form">
@@ -630,9 +643,9 @@ header::after{
     </div>
   </section>
 
-  <!-- 06 Schritte -->
+  <!-- 07 Schritte -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">06</span>Schritte</h2><span class="meta">Wochenübersicht</span></div>
+    <div class="sec-head"><h2><span class="idx mono">07</span>Schritte</h2><span class="meta">Wochenübersicht</span></div>
     <div class="card">
       <div class="st-week" id="st-week"></div>
       <form class="add" id="st-form">
@@ -642,19 +655,6 @@ header::after{
         </div>
         <button class="primary" type="submit">Speichern</button>
       </form>
-    </div>
-  </section>
-
-  <!-- 07 Morgen-News -->
-  <section>
-    <div class="sec-head"><h2><span class="idx mono">07</span>Morgen-News</h2><span class="meta mono" id="news-meta">—</span></div>
-    <div class="card">
-      <div class="news-tabs" id="news-tabs" role="tablist"></div>
-      <div class="news-list" id="news-list"><div class="empty">News werden geladen …</div></div>
-      <div class="news-foot">
-        <button type="button" class="news-read" id="news-read">▶ Vorlesen</button>
-        <span class="news-src" id="news-src"></span>
-      </div>
     </div>
   </section>
 
@@ -2134,11 +2134,12 @@ function zeigeNews(j){
 }
 
 /* Vorlesen über die Sprachausgabe des Geräts (läuft lokal, nichts geht raus) */
-const newsReadBtn = document.getElementById("news-read");
 function vorlesenStopp(){
   if("speechSynthesis" in window) speechSynthesis.cancel();
   if(newsReadBtn){ newsReadBtn.classList.remove("on"); newsReadBtn.textContent = "▶ Vorlesen"; }
 }
+
+const newsReadBtn = document.getElementById("news-read");
 if(newsReadBtn) newsReadBtn.addEventListener("click", ()=>{
   if(!("speechSynthesis" in window)){ melde("Vorlesen wird auf diesem Gerät nicht unterstützt.", 3000); return; }
   if(speechSynthesis.speaking){ vorlesenStopp(); return; }
