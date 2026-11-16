@@ -25,6 +25,28 @@
    - Touchflächen auf mindestens 44 px gebracht (Abhaken, Tagesnavigation,
      Löschen).
 
+  NEU IN FASSUNG 8 (16.11.2026):
+   - Neuer Abschnitt 07 Märkte: sechs Kerzencharts (1-Min-Kerzen, letzte
+     60 Minuten, gleitender Durchschnitt, letzter Kurs als Linie). Krypto
+     (BTC, ETH, SOL) live über Binance ohne Schlüssel; US-Aktien (Apple,
+     Nvidia, Tesla) live über Finnhub, Schlüssel nur in den Einstellungen
+     (localStorage, nicht im Repo). Verbindungen werden im Hintergrund getrennt.
+   - Schritte: Tage in der Wochenleiste antippen, um sie nachzutragen;
+     Wochensumme und Durchschnitt; Knopf "Aus Kurzbefehl einfügen" übernimmt
+     "Schritte;Uhrzeit" aus der Zwischenablage (Apple-Health-Kurzbefehl).
+     Abschnitte: 01 Wetter, 02 Tagesplan, 03 Training, 04 Lernen, 05 Termine,
+     06 Schritte, 07 Märkte, 08 Regenradar.
+
+  NEU IN FASSUNG 7 (16.11.2026):
+   - Stundenplan neu: Klasse 10b, Oktober überarbeitet, gültig ab 08.10.2026.
+     Kurswahl (Sprache, Ethik/Religion, Sport, Profil, Informatik) wurde auf
+     die neuen Kurse übertragen; Profil Sport heißt jetzt "Sport — Fre, S2".
+   - Morgen-News (Abschnitt 04) entfernt, die Abschnitte rücken nach.
+     Reihenfolge: Wetter & Moped, Tagesplan, Training, Lernen, Termine,
+     Schritte, Regenradar.
+   - OFFEN: Busfahrzeiten (HEIMKUNFT) und die Tagesabläufe sind noch
+     nach dem alten Stundenplan; Mo endet jetzt nach der 6., Di/Mi nach der 8.
+
   NEU IN FASSUNG 5 (27.09.2026):
    - Reihenfolge: Wetter & Moped ganz oben, dann Tagesplan, Training,
      Lernen, Termine, Schritte, Morgen-News, Regenradar ganz unten.
@@ -479,33 +501,27 @@ header::after{
 
 .wx-day.is-today,.st-day.is-today{box-shadow:inset 0 -2px 0 var(--amber)}
 
-/* ---------- Morgen-News ---------- */
-.news-tabs{display:flex;gap:6px;padding:12px 12px 10px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}
-.news-tabs::-webkit-scrollbar{display:none}
-.news-tab{
-  flex:none;min-height:36px;padding:0 13px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);
-  font-family:inherit;font-size:13px;display:flex;align-items:center;gap:7px;
-}
-.news-tab i{width:7px;height:7px;border-radius:50%;display:inline-block}
-.news-tab[aria-selected="true"]{color:var(--ink);border-color:rgba(240,147,43,.55);background:rgba(240,147,43,.12)}
-.news-list{min-height:120px}
-.news-item{padding:14px 18px;border-bottom:1px solid var(--line);position:relative}
-.news-item:last-child{border-bottom:0}
-.news-item::before{
-  content:"";position:absolute;left:0;top:16px;bottom:16px;width:2px;border-radius:2px;
-  background:var(--nc, var(--amber));opacity:.8;
-}
-.news-item h3{font-size:15px;font-weight:600;line-height:1.3}
-.news-item p{font-size:14px;color:var(--ink-dim);margin-top:5px;line-height:1.5}
-.news-item a{font-size:11.5px;color:var(--amber);text-decoration:none;display:inline-block;margin-top:7px;letter-spacing:.02em}
-.news-foot{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--line);background:var(--panel-2)}
-.news-read{
-  flex:none;min-height:40px;padding:0 14px;border-radius:10px;cursor:pointer;font-family:inherit;
-  border:1px solid rgba(240,147,43,.45);background:transparent;color:var(--amber);font-size:13.5px;font-weight:600;
-}
-.news-read.on{background:var(--amber);color:#1A1206}
-.news-src{font-size:11.5px;color:var(--ink-faint);flex:1;min-width:0}
+
+/* ---------- Märkte ---------- */
+.mk-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink-faint)}
+.mk-bar span.q{display:flex;align-items:center;gap:7px}
+.mk-dot{width:7px;height:7px;border-radius:50%;background:var(--ink-faint);flex:none}
+.mk-dot.on{background:var(--go);box-shadow:0 0 8px var(--go)}
+.mk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line)}
+@media(min-width:900px){.mk-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.mk-tile{background:var(--panel);padding:10px 12px 8px;min-width:0}
+.mk-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mk-sym{font-size:11.5px;letter-spacing:.08em;color:var(--ink-dim);font-weight:600;white-space:nowrap}
+.mk-price{font-size:16px;font-weight:600;white-space:nowrap}
+.mk-chg{font-size:11.5px;margin-top:1px}
+.mk-up{color:var(--go)}.mk-down{color:var(--stop)}
+.mk-tile canvas{width:100%;height:120px;display:block;margin-top:6px}
+.mk-foot{font-size:10.5px;color:var(--ink-faint);margin-top:4px;min-height:14px}
+/* ---------- Schritte erweitert ---------- */
+.st-day{cursor:pointer}
+.st-day.is-sel{background:rgba(240,147,43,.14)}
+.st-sum{padding:10px 16px;font-size:12px;color:var(--ink-dim);border-bottom:1px solid var(--line)}
+.st-for{font-size:12px;color:var(--ink-faint);margin-bottom:8px;letter-spacing:.04em}
 
 /* ---------- Radar im eigenen Abschnitt ---------- */
 .radar-head{border-top:0;padding-top:14px}
@@ -542,7 +558,6 @@ header::after{
   @keyframes sweep{to{transform:rotate(360deg)}}
   .bg-grid{animation:drift 40s linear infinite}
   @keyframes drift{to{background-position:0 0,0 0,0 28px,28px 0,0 0}}
-  .news-item{animation:rise .35s cubic-bezier(.2,.7,.3,1) both}
 }
 </style>
 </head>
@@ -607,28 +622,15 @@ header::after{
     <div class="card" id="training"></div>
   </section>
 
-  <!-- 04 Morgen-News -->
+  <!-- 04 Lernen -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">04</span>Morgen-News</h2><span class="meta mono" id="news-meta">—</span></div>
-    <div class="card">
-      <div class="news-tabs" id="news-tabs" role="tablist"></div>
-      <div class="news-list" id="news-list"><div class="empty">News werden geladen …</div></div>
-      <div class="news-foot">
-        <button type="button" class="news-read" id="news-read">▶ Vorlesen</button>
-        <span class="news-src" id="news-src"></span>
-      </div>
-    </div>
-  </section>
-
-  <!-- 05 Lernen -->
-  <section>
-    <div class="sec-head"><h2><span class="idx mono">05</span>Lernen</h2><span class="meta" id="lern-meta"></span></div>
+    <div class="sec-head"><h2><span class="idx mono">04</span>Lernen</h2><span class="meta" id="lern-meta"></span></div>
     <div class="card" id="lernplan"></div>
   </section>
 
-  <!-- 06 Termine -->
+  <!-- 05 Termine -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">06</span>Termine</h2><span class="meta">nächste 14 Tage</span></div>
+    <div class="sec-head"><h2><span class="idx mono">05</span>Termine</h2><span class="meta">nächste 14 Tage</span></div>
     <div class="card">
       <div id="events"></div>
       <form class="add" id="ev-form">
@@ -643,18 +645,35 @@ header::after{
     </div>
   </section>
 
-  <!-- 07 Schritte -->
+  <!-- 06 Schritte -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">07</span>Schritte</h2><span class="meta">Wochenübersicht</span></div>
+    <div class="sec-head"><h2><span class="idx mono">06</span>Schritte</h2><span class="meta">Wochenübersicht</span></div>
     <div class="card">
       <div class="st-week" id="st-week"></div>
+      <div class="st-sum mono" id="st-sum"></div>
       <form class="add" id="st-form">
+        <div class="st-for" id="st-for"></div>
         <div class="row">
           <input id="st-count" type="number" inputmode="numeric" min="0" max="99999" placeholder="Schritte heute" required>
           <input id="st-time" type="time" required>
         </div>
-        <button class="primary" type="submit">Speichern</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="primary" type="submit">Speichern</button>
+          <button class="secondary" type="button" id="st-paste">Aus Kurzbefehl einfügen</button>
+        </div>
       </form>
+    </div>
+  </section>
+
+  <!-- 07 Märkte -->
+  <section>
+    <div class="sec-head"><h2><span class="idx mono">07</span>Märkte</h2><span class="meta mono">1-Min-Kerzen · live</span></div>
+    <div class="card">
+      <div class="mk-bar">
+        <span class="q"><span class="mk-dot" id="mk-dot-b"></span><span id="mk-st-b">Krypto · Binance</span></span>
+        <span class="q"><span class="mk-dot" id="mk-dot-f"></span><span id="mk-st-f">US-Aktien · Finnhub</span></span>
+      </div>
+      <div class="mk-grid" id="mk-grid"></div>
     </div>
   </section>
 
@@ -696,23 +715,18 @@ header::after{
       <label for="s-name">Anzeigename</label>
       <input id="s-name" placeholder="Arne">
 
-      <label for="s-lang">Sprache (Di 3./4., Fr 4.)</label>
+      <label for="s-lang">Sprache (Di 3./4., Fr 7.)</label>
       <select id="s-lang">
         <option value="LA1|Latein|DrKu|W09">Latein — DrKu, W09</option>
         <option value="RU1|Russisch|Stei|W10">Russisch — Stei, W10</option>
         <option value="SPA1|Spanisch 1|Nie|W06">Spanisch 1 — Nie, W06</option>
-        <option value="SPA2|Spanisch 2|Kra|W11">Spanisch 2 — Kra, W11</option>
-        <option value="SPA3|Spanisch 3|SchH|W13">Spanisch 3 — SchH, W13</option>
+        <option value="SPA2|Spanisch 2|Kra|W18">Spanisch 2 — Kra, W18 (Fr: W07)</option>
       </select>
 
       <label for="s-eth">Ethik / Religion (Do 1./2.)</label>
       <select id="s-eth">
-        <option value="ETH1|Ethik 1|Pfi|W18">Ethik 1 — Pfi, W18</option>
-        <option value="ETH2|Ethik 2|Tob|W07">Ethik 2 — Tob, W07</option>
-        <option value="ETH3|Ethik 3|Schn|W11">Ethik 3 — Schn, W11</option>
-        <option value="ETH4|Ethik 4|Stei|W10">Ethik 4 — Stei, W10</option>
-        <option value="REe1|Religion 1|WagL|O22">Religion 1 — WagL, O22</option>
-        <option value="REe2|Religion 2|Roh|W09">Religion 2 — Roh, W09</option>
+        <option value="ETH1|Ethik|Pfi|W02">Ethik — Pfi, W02</option>
+        <option value="REe1|Religion|Roh|W09">Religion — Roh, W09</option>
       </select>
 
       <label for="s-spo">Sport (Do 3./4.)</label>
@@ -723,14 +737,12 @@ header::after{
 
       <label for="s-prof">Profil (Do 5./6.)</label>
       <select id="s-prof">
-        <option value="Pkü1|Profil Künstlerisch 1|Schi|W16/Aula">Künstlerisch 1 — Schi, W16/Aula</option>
-        <option value="Pkü2|Profil Künstlerisch 2|Mei|Aula">Künstlerisch 2 — Mei, Aula</option>
-        <option value="Pnawi|Profil Naturwissenschaft|Höh|N03">Naturwissenschaft — Höh, N03</option>
-        <option value="Psp1|Profil Sport 1|PoA|S2">Sport 1 — PoA, S2</option>
-        <option value="Psp2|Profil Sport 2|Fre|S1">Sport 2 — Fre, S1</option>
+        <option value="Pkü1|Profil Künstlerisch|Schi, Mei|Aula">Künstlerisch — Schi, Mei, Aula</option>
+        <option value="Pnawi|Profil Naturwissenschaft|Höh|N01">Naturwissenschaft — Höh, N01</option>
+        <option value="Psp1|Profil Sport|Fre|S2">Sport — Fre, S2</option>
       </select>
 
-      <label for="s-inf">Informatik (Fr 3.)</label>
+      <label for="s-inf">Informatik (Fr 4.)</label>
       <select id="s-inf">
         <option value="INF10b1|Informatik 1|Fro|N11">Informatik 1 — Fro, N11</option>
         <option value="INF10b2|Informatik 2|Geß|N12">Informatik 2 — Geß, N12</option>
@@ -742,7 +754,10 @@ header::after{
         <input id="s-lon" inputmode="decimal" placeholder="12.7400">
       </div>
 
-      <p class="hint">Alles wird nur auf diesem Gerät gespeichert. Kein Konto, keine Cookies, kein Server. Wetterdaten kommen von Open-Meteo, das Regenradar nutzt Kartenkacheln von OpenStreetMap und Regendaten von RainViewer – alles ohne Schlüssel, Konto oder Weitergabe persönlicher Daten.</p>
+      <label for="s-fh">Finnhub-Schlüssel (für US-Aktien, optional)</label>
+      <input id="s-fh" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Schlüssel von finnhub.io">
+
+      <p class="hint">Alles wird nur auf diesem Gerät gespeichert. Kein Konto, keine Cookies, kein Server. Wetterdaten kommen von Open-Meteo, das Regenradar nutzt Kartenkacheln von OpenStreetMap und Regendaten von RainViewer – alles ohne Schlüssel, Konto oder Weitergabe persönlicher Daten. Die Märkte holen Krypto-Kurse live von Binance (ohne Schlüssel) und US-Aktien von Finnhub (mit deinem Schlüssel, der nur auf diesem Gerät bleibt). Dabei sieht der Anbieter deine IP-Adresse, so wie bei Open-Meteo und RainViewer.</p>
     </div>
   </details>
 
@@ -764,18 +779,18 @@ const KEY = "dash.v1";
 const defaults = () => ({
   name: "Arne",
   lang: "LA1|Latein|DrKu|W09",
-  eth:  "ETH1|Ethik 1|Pfi|W18",
+  eth:  "ETH1|Ethik|Pfi|W02",
   spo:  "SPOmat|Sport Matte|Bel|S1",
-  prof: "Psp2|Profil Sport 2|Fre|S1",
+  prof: "Psp1|Profil Sport|Fre|S2",
   inf:  "INF10b1|Informatik 1|Fro|N11",
   lat:  51.3700,
   lon:  12.7400,
+  fhKey: "",
   events: [],
   checks: {},
   icsSources: [],   // importierte Kalender: [{id,name,at}]
   wx: null,         // letzter Wetterstand, damit offline etwas da ist
-  schritte: {},     // Datum (YYYY-MM-DD) -> {anzahl, zeit}
-  news: null        // letzte Morgen-News aus news.json
+  schritte: {}     // Datum (YYYY-MM-DD) -> {anzahl, zeit}
 });
 let store = load();
 let speicherOk = true;
@@ -849,7 +864,7 @@ let today = new Date();
 let cursor = new Date();   // angezeigter Tag
 
 /* =========================================================
-   Stundenplan — Klasse 10b, gültig ab 17.08.2026
+   Stundenplan — Klasse 10b, gültig ab 08.10.2026 (Oktober überarbeitet)
    ========================================================= */
 const STUNDEN = ["07:55","08:45","09:50","10:40","11:50","13:00","13:50","14:35"];
 const DAUER = 45;
@@ -862,21 +877,22 @@ const FACH = {
 
 // Kürzel: [Fach, Lehrer, Raum] — "@wahl" = aus den Einstellungen
 const PLAN = {
-  1:[ ["PH","Sei","N09"], ["PH","Sei","N09"], ["MU","Hei","W18"], ["KU","Mei","M04"],
-      ["MA","Sei","W15"], ["MA","Sei","W15"], ["CH","Schö","N05"], ["CH","Schö","N05"] ],
-  2:[ ["DE","Gro","W14"], ["DE","Gro","W14"], ["@lang"], ["@lang"],
-      ["EN","Ger","O05"], ["EN","Ger","O05"], null, null ],
-  3:[ ["DE","Gro","W14"], ["DE","Gro","W14"], ["G/R/W","WagL","O22"], ["G/R/W","WagL","O22"],
-      ["MA","Sei","O05"], ["MA","Sei","O05"], ["GEO","Sto","O02"], ["GEO","Sto","O02"] ],
+  1:[ ["DE","Gro","W14"], ["DE","Gro","W14"], ["KU","Mei","M04"], ["MU","Hei","W18"],
+      ["MA","Sei","N09"], ["MA","Sei","N09"], null, null ],
+  2:[ ["BIO","Kre","N01"], ["BIO","Kre","N01"], ["@lang"], ["@lang"],
+      ["EN","Ger","W10"], ["EN","Ger","W10"], ["G/R/W","WagL","O22"], ["G/R/W","WagL","O22"] ],
+  3:[ ["CH","Schö","N06"], ["CH","Schö","N06"], ["MA","Sei","W18"], ["MA","Sei","W18"],
+      ["GE","HoA","W18"], ["GE","HoA","W18"], ["DE","Gro","W14"], ["DE","Gro","W14"] ],
   4:[ ["@eth"], ["@eth"], ["@spo"], ["@spo"], ["@prof"], ["@prof"], null, null ],
-  5:[ ["BIO","Kre","N06"], ["BIO","Kre","N06"], ["@inf"], ["@lang"],
-      ["EN","Ger","W08"], ["GE","HoA","O20"], ["GE","HoA","O20"], null ]
+  5:[ ["PH","Sei","N09"], ["PH","Sei","N09"], ["EN","Ger","W13"], ["@inf"],
+      ["GEO","Sto","O03"], ["GEO","Sto","O03"], ["@lang","","",{SPA2:"W07"}], null ]
 };
 
-function wahl(slot){
+// ov = Raum-Ausnahmen für einzelne Kurse an diesem Tag, z. B. {SPA2:"W07"}
+function wahl(slot, ov){
   const raw = store[slot.slice(1)] || "";
-  const [,name,lehrer,raum] = raw.split("|");
-  return [name||"Kurs", lehrer||"", raum||""];
+  const [key,name,lehrer,raum] = raw.split("|");
+  return [name||"Kurs", lehrer||"", (ov && ov[key]) || raum || ""];
 }
 function schultag(dow){
   if(!PLAN[dow]) return [];
@@ -884,7 +900,7 @@ function schultag(dow){
   PLAN[dow].forEach((s,i)=>{
     if(!s) return;
     if(!STUNDEN[i]) return;
-    const cell = s[0].startsWith("@") ? wahl(s[0]) : [FACH[s[0]]||s[0], s[1], s[2]];
+    const cell = s[0].startsWith("@") ? wahl(s[0], s[3]) : [FACH[s[0]]||s[0], s[1], s[2]];
     out.push({
       kind:"schule",
       start: minutes(STUNDEN[i]),
@@ -2046,166 +2062,366 @@ if(radarPlayBtn) radarPlayBtn.addEventListener("click", ()=>{
 });
 
 /* =========================================================
-   Morgen-News — liest news.json aus demselben Repo.
-   Die Datei wird jede Nacht um 0 Uhr von einer geplanten
-   Claude-Aufgabe neu geschrieben. Kein Drittanbieter, gleiche
-   Herkunft wie das Dashboard, letzter Stand bleibt offline da.
-   ========================================================= */
-const NEWS_FARBEN = {krieg:"#D65A4A", politik:"#6FA3D8", finanzen:"#5FBF7F", aktien:"#5FBF7F", ki:"#B58AE0"};
-let newsDaten = null;
-let newsTab = 0;
-
-async function ladeNews(){
-  if(store.news) zeigeNews(store.news);
-  try{
-    const ctrl = new AbortController();
-    const abbruch = setTimeout(()=>ctrl.abort(), 12000);
-    const res = await fetch("news.json?t="+Date.now(), {signal:ctrl.signal, cache:"no-store"});
-    clearTimeout(abbruch);
-    if(!res.ok) throw new Error("HTTP "+res.status);
-    const j = await res.json();
-    if(!j || !Array.isArray(j.bloecke)) throw new Error("Format");
-    store.news = j;
-    save();
-    zeigeNews(j);
-  }catch(e){
-    if(!store.news){
-      document.getElementById("news-list").innerHTML =
-        '<div class="empty">Noch keine News da. Die erste Ausgabe kommt nach dem nächsten Lauf um 0 Uhr.</div>';
-      document.getElementById("news-meta").textContent = "—";
-    }
-  }
-}
-
-function newsDatumText(j){
-  if(!j.datum) return "";
-  const [y,m,d] = j.datum.split("-").map(Number);
-  const dt = new Date(y, m-1, d);
-  const heute = iso(new Date()) === j.datum;
-  return (heute ? "Heute" : DAYS3[dt.getDay()]+" "+d+"."+m+".")
-    + (j.erstellt ? " · "+j.erstellt.slice(11,16)+" Uhr" : "");
-}
-
-function zeigeNews(j){
-  newsDaten = j;
-  if(newsTab >= j.bloecke.length) newsTab = 0;
-  document.getElementById("news-meta").textContent = newsDatumText(j);
-
-  const tabs = document.getElementById("news-tabs");
-  tabs.innerHTML = "";
-  j.bloecke.forEach((b,i)=>{
-    const bt = document.createElement("button");
-    bt.type = "button";
-    bt.className = "news-tab";
-    bt.setAttribute("role","tab");
-    bt.setAttribute("aria-selected", i===newsTab ? "true" : "false");
-    const dot = document.createElement("i");
-    dot.style.background = NEWS_FARBEN[b.id] || "var(--amber)";
-    bt.appendChild(dot);
-    bt.appendChild(document.createTextNode(b.titel || b.id));
-    bt.addEventListener("click", ()=>{ newsTab = i; vorlesenStopp(); zeigeNews(newsDaten); });
-    tabs.appendChild(bt);
-  });
-
-  const b = j.bloecke[newsTab];
-  const liste = document.getElementById("news-list");
-  liste.innerHTML = "";
-  (b.punkte || []).forEach((p,i)=>{
-    const art = document.createElement("article");
-    art.className = "news-item";
-    art.style.setProperty("--nc", NEWS_FARBEN[b.id] || "var(--amber)");
-    art.style.animationDelay = (i*0.05)+"s";
-    const h3 = document.createElement("h3"); h3.textContent = p.titel || "";
-    const tx = document.createElement("p");  tx.textContent = p.text || "";
-    art.append(h3, tx);
-    if(p.quelle && /^https?:\/\//.test(p.quelle)){
-      const a = document.createElement("a");
-      a.href = p.quelle; a.target = "_blank"; a.rel = "noopener noreferrer";
-      try{ a.textContent = "Quelle: " + new URL(p.quelle).hostname.replace(/^www\./,"") + " ↗"; }
-      catch(e){ a.textContent = "Quelle ↗"; }
-      art.appendChild(a);
-    }
-    liste.appendChild(art);
-  });
-  if(!(b.punkte||[]).length) liste.innerHTML = '<div class="empty">In diesem Bereich gibt es heute nichts Neues.</div>';
-
-  document.getElementById("news-src").textContent =
-    j.hinweis || "Automatisch zusammengefasst von Claude · ohne Gewähr";
-}
-
-/* Vorlesen über die Sprachausgabe des Geräts (läuft lokal, nichts geht raus) */
-function vorlesenStopp(){
-  if("speechSynthesis" in window) speechSynthesis.cancel();
-  if(newsReadBtn){ newsReadBtn.classList.remove("on"); newsReadBtn.textContent = "▶ Vorlesen"; }
-}
-
-const newsReadBtn = document.getElementById("news-read");
-if(newsReadBtn) newsReadBtn.addEventListener("click", ()=>{
-  if(!("speechSynthesis" in window)){ melde("Vorlesen wird auf diesem Gerät nicht unterstützt.", 3000); return; }
-  if(speechSynthesis.speaking){ vorlesenStopp(); return; }
-  if(!newsDaten) return;
-  const b = newsDaten.bloecke[newsTab];
-  const text = (b.titel||"") + ". " + (b.punkte||[]).map(p=>(p.titel||"")+". "+(p.text||"")).join(" ");
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "de-DE";
-  const stimme = speechSynthesis.getVoices().find(v=>v.lang && v.lang.startsWith("de"));
-  if(stimme) u.voice = stimme;
-  u.rate = 1.0;
-  u.onend = vorlesenStopp;
-  u.onerror = vorlesenStopp;
-  newsReadBtn.classList.add("on");
-  newsReadBtn.textContent = "■ Stopp";
-  speechSynthesis.speak(u);
-});
-
-/* =========================================================
    Schritte — von Hand erfasst (der Browser hat keinen Zugriff
    auf Health-/Fitnessdaten des Geräts), Wochenübersicht wie
    beim Wetter.
    ========================================================= */
+let stWahl = iso(new Date());   // Tag, der im Formular bearbeitet wird
+
+function stBeschriftung(key){
+  if(key === iso(new Date())) return "Heute";
+  const d = new Date(key+"T12:00:00");
+  return DAYS3[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)+".";
+}
+const stAnzahl = e => (e && Number.isFinite(Number(e.anzahl))) ? Number(e.anzahl) : null;
+
 function renderSchritteWoche(){
   const wk = document.getElementById("st-week");
   if(!wk) return;
   wk.innerHTML = "";
+  let summe = 0, tage = 0;
   for(let i=6; i>=0; i--){
     const d = addDays(new Date(), -i);
     const key = iso(d);
     const eintrag = store.schritte[key];
+    const n = stAnzahl(eintrag);
+    if(n !== null){ summe += n; tage++; }
     const istHeute = i===0;
     const col = document.createElement("div");
-    col.className = "st-day"+(istHeute?" is-today":"");
+    col.className = "st-day"+(istHeute?" is-today":"")+(key===stWahl?" is-sel":"");
     col.innerHTML =
       '<div class="d">'+(istHeute?"Heute":DAYS3[d.getDay()])+'</div>'+
-      '<div class="n mono">'+(eintrag ? eintrag.anzahl.toLocaleString("de-DE") : "–")+'</div>'+
-      '<div class="z mono">'+(eintrag && eintrag.zeit ? eintrag.zeit+" Uhr" : "")+'</div>';
+      '<div class="n mono">'+(n !== null ? n.toLocaleString("de-DE") : "–")+'</div>'+
+      '<div class="z mono">'+(n !== null && eintrag.zeit ? eintrag.zeit+" Uhr" : "")+'</div>';
+    col.addEventListener("click", ()=>{ stWahl = key; schritteFormFuellen(); renderSchritteWoche(); });
     wk.appendChild(col);
   }
+  const sum = document.getElementById("st-sum");
+  if(sum) sum.textContent = tage
+    ? "Woche: "+summe.toLocaleString("de-DE")+" Schritte · Ø "+Math.round(summe/tage).toLocaleString("de-DE")+" pro Tag ("+tage+" von 7 Tagen erfasst)"
+    : "Noch keine Schritte diese Woche. Tippe einen Tag an, um ihn nachzutragen.";
+}
+
+function schritteFormFuellen(){
+  const nEl = document.getElementById("st-count");
+  const zEl = document.getElementById("st-time");
+  const fEl = document.getElementById("st-for");
+  if(!nEl || !zEl) return;
+  const eintrag = store.schritte[stWahl];
+  const n = stAnzahl(eintrag);
+  if(fEl) fEl.textContent = "Eintrag für: "+stBeschriftung(stWahl);
+  nEl.value = n !== null ? n : "";
+  const jetzt = new Date();
+  zEl.value = (eintrag && eintrag.zeit) ? eintrag.zeit
+    : (stWahl === iso(jetzt) ? String(jetzt.getHours()).padStart(2,"0")+":"+String(jetzt.getMinutes()).padStart(2,"0") : "20:00");
 }
 
 function schritteHeuteVorbelegen(){
-  const key = iso(new Date());
-  const eintrag = store.schritte[key];
-  const nEl = document.getElementById("st-count");
-  const zEl = document.getElementById("st-time");
-  if(!nEl || !zEl) return;
-  nEl.value = eintrag ? eintrag.anzahl : "";
-  const n = new Date();
-  zEl.value = eintrag ? eintrag.zeit
-    : String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");
+  stWahl = iso(new Date());   // nach Mitternacht wieder auf heute
+  schritteFormFuellen();
 }
 
 const stForm = document.getElementById("st-form");
 if(stForm) stForm.addEventListener("submit", e=>{
   e.preventDefault();
   const n = parseInt(document.getElementById("st-count").value, 10);
-  if(!Number.isFinite(n) || n<0){ melde("Bitte eine gültige Schrittzahl eingeben.", 3000); return; }
+  if(!Number.isFinite(n) || n<0 || n>99999){ melde("Bitte eine gültige Schrittzahl eingeben (0–99.999).", 3000); return; }
   const zeit = document.getElementById("st-time").value || "00:00";
-  store.schritte[iso(new Date())] = {anzahl:n, zeit:zeit};
+  store.schritte[stWahl] = {anzahl:n, zeit:zeit};
   putzeSchritte();
   save();
   renderSchritteWoche();
-  melde("Schritte gespeichert.", 2000);
+  melde("Schritte für "+stBeschriftung(stWahl)+" gespeichert.", 2200);
 });
+
+/* Verbindung zu Apple Health über einen Kurzbefehl: der Kurzbefehl legt
+   "Schritte;Uhrzeit" (z. B. 8421;18:30) in die Zwischenablage, ein Tipp hier
+   übernimmt den Wert für heute. Das Dashboard selbst kommt nicht an Health heran. */
+const stPaste = document.getElementById("st-paste");
+if(stPaste) stPaste.addEventListener("click", async ()=>{
+  try{
+    const roh = await navigator.clipboard.readText();
+    const t = String(roh).replace(/(\d)[.\s](?=\d{3}(?!\d))/g, "$1");
+    const m = t.match(/(\d{1,6})(?:[^\d]+(\d{1,2}):(\d{2}))?/);
+    const n = m ? parseInt(m[1], 10) : NaN;
+    if(!m || !Number.isFinite(n) || n>99999){ melde("In der Zwischenablage steht keine Schrittzahl.", 3200); return; }
+    const jetzt = new Date();
+    const zeit = m[2] ? String(m[2]).padStart(2,"0")+":"+m[3]
+      : String(jetzt.getHours()).padStart(2,"0")+":"+String(jetzt.getMinutes()).padStart(2,"0");
+    stWahl = iso(jetzt);
+    store.schritte[stWahl] = {anzahl:n, zeit:zeit};
+    putzeSchritte(); save(); schritteFormFuellen(); renderSchritteWoche();
+    melde(n.toLocaleString("de-DE")+" Schritte übernommen.", 2500);
+  }catch(err){
+    melde("Zugriff auf die Zwischenablage nicht erlaubt.", 3200);
+  }
+});
+
+/* =========================================================
+   Märkte — Kerzencharts mit Live-Kursen.
+   Krypto: Binance (öffentliche Schnittstelle, kein Schlüssel).
+   US-Aktien: Finnhub-WebSocket mit deinem Schlüssel aus den
+   Einstellungen; die Kerzen entstehen aus den eintreffenden Trades.
+   Gezeichnet wird mit Canvas, ohne Bibliothek. Im Hintergrund
+   (Tab/App nicht sichtbar) werden die Verbindungen getrennt.
+   ========================================================= */
+const MARKT = [
+  {id:"BTCUSDT", label:"BTC / USD",  quelle:"b"},
+  {id:"ETHUSDT", label:"ETH / USD",  quelle:"b"},
+  {id:"SOLUSDT", label:"SOL / USD",  quelle:"b"},
+  {id:"AAPL",    label:"Apple",      quelle:"f"},
+  {id:"NVDA",    label:"Nvidia",     quelle:"f"},
+  {id:"TSLA",    label:"Tesla",      quelle:"f"}
+];
+const MAX_K = 60;          // sichtbare Kerzen (je 1 Minute)
+const SMA_N = 10;
+
+function marktAufbauen(){
+  const grid = document.getElementById("mk-grid");
+  if(!grid) return;
+  grid.innerHTML = "";
+  MARKT.forEach(m=>{
+    m.k = []; m.dirty = true; m.hinweis = "";
+    const t = document.createElement("div");
+    t.className = "mk-tile";
+    t.innerHTML =
+      '<div class="mk-head"><span class="mk-sym mono"></span><span class="mk-price mono">–</span></div>'+
+      '<div class="mk-chg mono">&nbsp;</div>'+
+      '<canvas></canvas>'+
+      '<div class="mk-foot"></div>';
+    m.el = {sym:t.querySelector(".mk-sym"), price:t.querySelector(".mk-price"),
+            chg:t.querySelector(".mk-chg"), cv:t.querySelector("canvas"), foot:t.querySelector(".mk-foot")};
+    m.el.sym.textContent = m.label;
+    grid.appendChild(t);
+  });
+}
+
+function setzeStatus(q, text, live){
+  const d = document.getElementById("mk-dot-"+q), t = document.getElementById("mk-st-"+q);
+  if(d) d.classList.toggle("on", !!live);
+  if(t) t.textContent = text;
+}
+
+function kerze(m, c){
+  const l = m.k[m.k.length-1];
+  if(l && l.t === c.t) m.k[m.k.length-1] = c;
+  else if(!l || c.t > l.t){ m.k.push(c); if(m.k.length > MAX_K) m.k.shift(); }
+  m.dirty = true;
+}
+
+function usMarktOffen(){
+  try{
+    const p = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"numeric",minute:"numeric",hour12:false}).formatToParts(new Date());
+    const g = k => (p.find(x=>x.type===k)||{}).value;
+    const min = (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10);
+    return !["Sat","Sun"].includes(g("weekday")) && min >= 570 && min < 960;   // 9:30–16:00 Ortszeit New York
+  }catch(e){ return true; }
+}
+
+/* ---------- Binance ---------- */
+let bWs = null, bTimer = null, bTry = 0;
+function bStop(){
+  clearTimeout(bTimer); bTimer = null;
+  if(bWs){ const w = bWs; bWs = null; try{ w.close(); }catch(e){} }
+}
+function bPlane(){
+  clearTimeout(bTimer);
+  if(document.hidden) return;
+  const warte = Math.min(30000, 1000 * Math.pow(2, bTry++));
+  bTimer = setTimeout(bStart, warte);
+}
+async function bHistorie(){
+  await Promise.all(MARKT.filter(m=>m.quelle==="b").map(async m=>{
+    try{
+      const r = await fetch("https://api.binance.com/api/v3/klines?symbol="+m.id+"&interval=1m&limit="+MAX_K);
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const a = await r.json();
+      m.k = a.map(x=>({t:x[0], o:+x[1], h:+x[2], l:+x[3], c:+x[4]}));
+      m.dirty = true;
+    }catch(e){}
+  }));
+}
+function bStart(){
+  bStop();
+  if(document.hidden) return;
+  setzeStatus("b","Krypto · verbindet …",false);
+  bHistorie().then(()=>{
+    if(document.hidden || bWs) return;
+    const streams = MARKT.filter(m=>m.quelle==="b").map(m=>m.id.toLowerCase()+"@kline_1m").join("/");
+    let ws;
+    try{ ws = new WebSocket("wss://stream.binance.com:9443/stream?streams="+streams); }
+    catch(e){ setzeStatus("b","Krypto · nicht erreichbar",false); bPlane(); return; }
+    bWs = ws;
+    ws.onopen = ()=>{ bTry = 0; setzeStatus("b","Krypto · live (Binance)",true); };
+    ws.onmessage = ev=>{
+      try{
+        const d = JSON.parse(ev.data).data;
+        if(!d || !d.k) return;
+        const m = MARKT.find(x=>x.id===d.s);
+        if(!m) return;
+        const k = d.k;
+        kerze(m, {t:k.t, o:+k.o, h:+k.h, l:+k.l, c:+k.c});
+      }catch(e){}
+    };
+    ws.onclose = ()=>{
+      if(bWs !== ws) return;
+      bWs = null;
+      setzeStatus("b","Krypto · getrennt, verbindet neu …",false);
+      bPlane();
+    };
+    ws.onerror = ()=>{ try{ ws.close(); }catch(e){} };
+  });
+}
+
+/* ---------- Finnhub ---------- */
+let fWs = null, fTimer = null, fTry = 0;
+function fStop(){
+  clearTimeout(fTimer); fTimer = null;
+  if(fWs){ const w = fWs; fWs = null; try{ w.close(); }catch(e){} }
+}
+function fPlane(){
+  clearTimeout(fTimer);
+  if(document.hidden) return;
+  if(fTry >= 6){ setzeStatus("f","US-Aktien · Schlüssel oder Verbindung prüfen",false); return; }
+  fTimer = setTimeout(fStart, Math.min(30000, 1000 * Math.pow(2, fTry++)));
+}
+function fStart(){
+  fStop();
+  const key = String(store.fhKey || "").trim();
+  const meine = MARKT.filter(m=>m.quelle==="f");
+  if(!key){
+    setzeStatus("f","US-Aktien · Schlüssel fehlt",false);
+    meine.forEach(m=>{ m.hinweis = "Schlüssel in den Einstellungen eintragen (finnhub.io)"; m.dirty = true; });
+    return;
+  }
+  meine.forEach(m=>{ m.hinweis = ""; m.dirty = true; });
+  if(document.hidden) return;
+  setzeStatus("f","US-Aktien · verbindet …",false);
+  let ws;
+  try{ ws = new WebSocket("wss://ws.finnhub.io?token="+encodeURIComponent(key)); }
+  catch(e){ fPlane(); return; }
+  fWs = ws;
+  ws.onopen = ()=>{
+    meine.forEach(m=>ws.send(JSON.stringify({type:"subscribe", symbol:m.id})));
+    const offen = usMarktOffen();
+    setzeStatus("f", offen ? "US-Aktien · live (Finnhub)" : "US-Aktien · Börse geschlossen", offen);
+  };
+  ws.onmessage = ev=>{
+    try{
+      const d = JSON.parse(ev.data);
+      if(d.type === "error"){ setzeStatus("f","US-Aktien · "+(d.msg||"Fehler"),false); return; }
+      if(d.type !== "trade" || !d.data) return;
+      fTry = 0;
+      d.data.forEach(t=>{
+        const m = MARKT.find(x=>x.id===t.s);
+        if(!m || !Number.isFinite(t.p)) return;
+        const min = Math.floor(t.t/60000)*60000, p = t.p;
+        const l = m.k[m.k.length-1];
+        if(l && l.t === min){ l.h = Math.max(l.h,p); l.l = Math.min(l.l,p); l.c = p; m.dirty = true; }
+        else kerze(m, {t:min, o:p, h:p, l:p, c:p});
+      });
+    }catch(e){}
+  };
+  ws.onclose = ()=>{
+    if(fWs !== ws) return;
+    fWs = null;
+    setzeStatus("f","US-Aktien · getrennt, verbindet neu …",false);
+    fPlane();
+  };
+  ws.onerror = ()=>{ try{ ws.close(); }catch(e){} };
+}
+
+/* ---------- Zeichnen ---------- */
+function fmtPreis(v){
+  if(!Number.isFinite(v)) return "–";
+  const nk = v >= 1000 ? 2 : v >= 1 ? 2 : 4;
+  return v.toLocaleString("de-DE",{minimumFractionDigits:nk, maximumFractionDigits:nk});
+}
+function marktAktualisieren(m){
+  const k = m.k, el = m.el;
+  if(!k.length){
+    el.price.textContent = "–"; el.chg.innerHTML = "&nbsp;"; el.chg.className = "mk-chg mono";
+    el.foot.textContent = m.hinweis || (m.quelle==="f" && !usMarktOffen() ? "US-Börse geschlossen, keine Live-Kurse" : "Warte auf Daten …");
+    return;
+  }
+  const last = k[k.length-1], first = k[0];
+  const pct = (last.c - first.o) / first.o * 100;
+  el.price.textContent = fmtPreis(last.c);
+  el.chg.textContent = (pct>=0?"▲ +":"▼ ")+pct.toFixed(2).replace(".",",")+" % · "+k.length+" Min";
+  el.chg.className = "mk-chg mono "+(pct>=0?"mk-up":"mk-down");
+  el.foot.textContent = m.hinweis || (m.quelle==="f" && !usMarktOffen() ? "US-Börse geschlossen, letzter Stand" : "Kerzen à 1 Min · gelb = Ø "+SMA_N);
+}
+function marktZeichnen(m){
+  const cv = m.el.cv, dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, hh = cv.clientHeight;
+  if(!w || !hh) return;
+  if(cv.width !== Math.round(w*dpr) || cv.height !== Math.round(hh*dpr)){
+    cv.width = Math.round(w*dpr); cv.height = Math.round(hh*dpr);
+  }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,hh);
+  const k = m.k;
+  g.font = "10px ui-monospace,Menlo,Consolas,monospace";
+  if(!k.length){ g.fillStyle = "#6E655B"; g.fillText("keine Daten", 6, hh/2); return; }
+
+  const rechts = 50, plotW = w - rechts;
+  let lo = Infinity, hi = -Infinity;
+  k.forEach(c=>{ lo = Math.min(lo,c.l); hi = Math.max(hi,c.h); });
+  if(hi === lo){ hi += 1; lo -= 1; }
+  const pad = (hi-lo)*0.08; lo -= pad; hi += pad;
+  const y = v => hh - 4 - (v-lo)/(hi-lo)*(hh-8);
+  const step = plotW / MAX_K, bw = Math.max(1.5, step*0.62);
+  const x = i => (MAX_K - k.length + i + 0.5) * step;
+
+  g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
+  for(let i=1;i<=3;i++){ const yy = Math.round(hh*i/4)+.5; g.beginPath(); g.moveTo(0,yy); g.lineTo(plotW,yy); g.stroke(); }
+
+  k.forEach((c,i)=>{
+    const up = c.c >= c.o;
+    g.strokeStyle = g.fillStyle = up ? "#5FBF7F" : "#D65A4A";
+    const cx = Math.round(x(i))+.5;
+    g.beginPath(); g.moveTo(cx,y(c.h)); g.lineTo(cx,y(c.l)); g.stroke();
+    const top = Math.min(y(c.o),y(c.c)), hoch = Math.max(1, Math.abs(y(c.o)-y(c.c)));
+    g.fillRect(cx-bw/2, top, bw, hoch);
+  });
+
+  g.strokeStyle = "#F0932B"; g.lineWidth = 1.3; g.beginPath();
+  let gestartet = false;
+  k.forEach((c,i)=>{
+    if(i < SMA_N-1) return;
+    let s = 0; for(let j=i-SMA_N+1;j<=i;j++) s += k[j].c;
+    const yy = y(s/SMA_N);
+    if(!gestartet){ g.moveTo(x(i),yy); gestartet = true; } else g.lineTo(x(i),yy);
+  });
+  g.stroke();
+
+  const l = k[k.length-1], yl = Math.round(y(l.c))+.5, up = l.c >= k[0].o;
+  g.setLineDash([3,3]); g.strokeStyle = up ? "#5FBF7F" : "#D65A4A"; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0,yl); g.lineTo(plotW,yl); g.stroke(); g.setLineDash([]);
+  g.fillStyle = up ? "#5FBF7F" : "#D65A4A";
+  g.fillRect(plotW+1, yl-8, rechts-1, 16);
+  g.fillStyle = "#12100E"; g.fillText(fmtPreis(l.c), plotW+4, yl+3.5, rechts-6);
+  g.fillStyle = "#6E655B";
+  g.fillText(fmtPreis(hi), plotW+4, 10, rechts-6);
+  g.fillText(fmtPreis(lo), plotW+4, hh-3, rechts-6);
+}
+
+function marktStart(){
+  marktAufbauen();
+  bStart();
+  fStart();
+  setInterval(()=>{
+    if(document.hidden) return;
+    MARKT.forEach(m=>{ if(m.dirty){ m.dirty = false; marktAktualisieren(m); marktZeichnen(m); } });
+  }, 1000);
+  window.addEventListener("resize", ()=>MARKT.forEach(m=>m.dirty = true));
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden){ bStop(); fStop(); }
+    else { bTry = 0; fTry = 0; bStart(); fStart(); MARKT.forEach(m=>m.dirty = true); }
+  });
+  window.addEventListener("online", ()=>{ bTry = 0; fTry = 0; bStart(); fStart(); });
+}
 
 /* =========================================================
    Kopfzeile, Navigation, Mitternachts-Wechsel
@@ -2299,7 +2515,6 @@ function tageswechsel(){
   renderAll();
   ladeWetter(true);          // Wetter beim Tageswechsel frisch holen
   schritteHeuteVorbelegen(); // Eingabefeld auf den neuen Tag zurücksetzen
-  ladeNews();
   planeMitternacht();
 
   const d = new Date();
@@ -2321,7 +2536,6 @@ document.addEventListener("visibilitychange", ()=>{
   if(document.hidden) return;
   pruefeTag();
   ladeWetter(false);         // holt nur, wenn der Stand älter als 30 Minuten ist
-  ladeNews();
 });
 window.addEventListener("focus", pruefeTag);
 window.addEventListener("pageshow", pruefeTag);
@@ -2330,14 +2544,23 @@ window.addEventListener("online", ()=>ladeWetter(true));
 /* =========================================================
    Einstellungen
    ========================================================= */
-const felder = {"s-name":"name","s-lang":"lang","s-eth":"eth","s-spo":"spo","s-prof":"prof","s-inf":"inf","s-lat":"lat","s-lon":"lon"};
+const felder = {"s-name":"name","s-lang":"lang","s-eth":"eth","s-spo":"spo","s-prof":"prof","s-inf":"inf","s-lat":"lat","s-lon":"lon","s-fh":"fhKey"};
 Object.entries(felder).forEach(([id,key])=>{
   const el = document.getElementById(id);
+  if(el.tagName === "SELECT"){
+    // Kurswahl aus älteren Fassungen auf den Plan vom 08.10.2026 übertragen
+    const alt = {Psp2:"Psp1",REe2:"REe1",ETH2:"ETH1",ETH3:"ETH1",ETH4:"ETH1",Pkü2:"Pkü1",SPA3:"SPA1"};
+    const k0 = String(store[key]).split("|")[0];
+    const k1 = alt[k0] || k0;
+    const opt = [...el.options].find(o=>o.value.split("|")[0]===k1);
+    store[key] = opt ? opt.value : el.options[0].value;
+  }
   el.value = store[key];
   el.addEventListener("change", ()=>{
     store[key] = el.value;
     save();
     if(key==="lat"||key==="lon"){ ladeWetter(); radarStart(); }
+    else if(key==="fhKey"){ fTry = 0; fStart(); }
     else renderAll();
   });
 });
@@ -2388,7 +2611,7 @@ zeigeIcsQuellen();
 renderAll();
 ladeWetter(false);
 schritteHeuteVorbelegen();
-ladeNews();
+marktStart();
 radarStart();
 setInterval(radarFramesLaden, 10*60*1000); // neue Regen-Frames alle 10 Min
 planeMitternacht();
@@ -2401,7 +2624,7 @@ if("serviceWorker" in navigator){
     self.addEventListener("activate",e=>{e.waitUntil(self.clients.claim())});
     self.addEventListener("fetch",e=>{
       if(e.request.url.includes("open-meteo") || e.request.url.includes("tile.openstreetmap.org")
-         || e.request.url.includes("rainviewer") || e.request.url.includes("news.json")) return;
+         || e.request.url.includes("rainviewer") || e.request.url.includes("binance.com") || e.request.url.includes("finnhub.io")) return;
       e.respondWith(
         fetch(e.request).then(r=>{
           const c=r.clone(); caches.open(C).then(x=>x.put(e.request,c)); return r;
