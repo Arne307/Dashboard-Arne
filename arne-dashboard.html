@@ -2137,24 +2137,54 @@ if(stForm) stForm.addEventListener("submit", e=>{
 /* Verbindung zu Apple Health über einen Kurzbefehl: der Kurzbefehl legt
    "Schritte;Uhrzeit" (z. B. 8421;18:30) in die Zwischenablage, ein Tipp hier
    übernimmt den Wert für heute. Das Dashboard selbst kommt nicht an Health heran. */
+/* Liest "Schritte;Uhrzeit" aus beliebig geschriebenem Text, z. B.
+   3174;17:14 · 3.174;17:14 · 3,174;17:14 · 3174,5;17:14 · 3 174;17:14 · nur 3174 */
+function parseSchritte(text){
+  const roh = String(text == null ? "" : text);
+  const teile = roh.split(/[;|\n\r\t]/).map(s=>s.trim()).filter(Boolean);
+  if(!teile.length) return null;
+  // Zahl = erster Teil, der nach dem Entfernen von Leerzeichen wie eine Zahl aussieht
+  let n = null, restIdx = 0;
+  for(let i=0;i<teile.length;i++){
+    const s = teile[i].replace(/[\s   ']/g,"");
+    let wert = null;
+    if(/^\d+$/.test(s)) wert = parseInt(s,10);
+    else if(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) wert = parseInt(s.replace(/\./g,"").replace(/,\d+$/,""),10);   // 3.174 oder 3.174,5
+    else if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) wert = parseInt(s.replace(/,/g,"").replace(/\.\d+$/,""),10);   // 3,174 oder 3,174.5
+    else if(/^\d+[.,]\d+$/.test(s)) wert = Math.round(parseFloat(s.replace(",",".")));                              // 3174,5
+    if(wert !== null && Number.isFinite(wert)){ n = wert; restIdx = i+1; break; }
+  }
+  if(n === null){   // Notlösung: erste freistehende Zahl im Text, die nicht Teil einer Uhrzeit ist
+    const m1 = roh.match(/(?<![:\d.,])(\d{1,3}(?:[.,   ]\d{3})+|\d{1,5})(?![\d:]|[.,]\d)/);
+    if(m1){ n = parseInt(m1[1].replace(/[^\d]/g,""),10); restIdx = teile.length; }
+  }
+  if(n === null || n < 0 || n > 99999) return null;
+  const rest = teile.slice(restIdx).join(" ");
+  const tm = rest.match(/(\d{1,2})[:.](\d{2})/) || roh.match(/(\d{1,2}):(\d{2})/);
+  const jetzt = new Date();
+  const zeit = tm ? String(tm[1]).padStart(2,"0")+":"+tm[2]
+    : String(jetzt.getHours()).padStart(2,"0")+":"+String(jetzt.getMinutes()).padStart(2,"0");
+  return {n, zeit};
+}
+
 const stPaste = document.getElementById("st-paste");
 if(stPaste) stPaste.addEventListener("click", async ()=>{
-  try{
-    const roh = await navigator.clipboard.readText();
-    const t = String(roh).replace(/(\d)[.\s](?=\d{3}(?!\d))/g, "$1");
-    const m = t.match(/(\d{1,6})(?:[^\d]+(\d{1,2}):(\d{2}))?/);
-    const n = m ? parseInt(m[1], 10) : NaN;
-    if(!m || !Number.isFinite(n) || n>99999){ melde("In der Zwischenablage steht keine Schrittzahl.", 3200); return; }
-    const jetzt = new Date();
-    const zeit = m[2] ? String(m[2]).padStart(2,"0")+":"+m[3]
-      : String(jetzt.getHours()).padStart(2,"0")+":"+String(jetzt.getMinutes()).padStart(2,"0");
-    stWahl = iso(jetzt);
-    store.schritte[stWahl] = {anzahl:n, zeit:zeit};
-    putzeSchritte(); save(); schritteFormFuellen(); renderSchritteWoche();
-    melde(n.toLocaleString("de-DE")+" Schritte übernommen.", 2500);
-  }catch(err){
-    melde("Zugriff auf die Zwischenablage nicht erlaubt.", 3200);
+  let roh = "";
+  try{ roh = await navigator.clipboard.readText(); }
+  catch(err){ melde("Zugriff auf die Zwischenablage nicht erlaubt. Beim Hinweis „Einfügen“ erlauben.", 3800); return; }
+  const r = parseSchritte(roh);
+  const fEl = document.getElementById("st-for");
+  if(!r){
+    if(fEl) fEl.textContent = "Gelesen: «"+String(roh).slice(0,40)+"» – keine Schrittzahl gefunden";
+    melde("In der Zwischenablage steht keine Schrittzahl.", 3500);
+    return;
   }
+  stWahl = iso(new Date());
+  store.schritte[stWahl] = {anzahl:r.n, zeit:r.zeit};
+  putzeSchritte(); save(); schritteFormFuellen(); renderSchritteWoche();
+  // Kontrolle: zeigt, was wirklich aus der Zwischenablage gelesen wurde
+  if(fEl) fEl.textContent = "Eintrag für: Heute · gelesen «"+String(roh).replace(/\s+/g," ").slice(0,40)+"»";
+  melde(r.n.toLocaleString("de-DE")+" Schritte um "+r.zeit+" übernommen.", 3000);
 });
 
 /* =========================================================
