@@ -25,7 +25,23 @@
    - Touchflächen auf mindestens 44 px gebracht (Abhaken, Tagesnavigation,
      Löschen).
 
-  NEU IN FASSUNG 8 (16.11.2026):
+   NEU IN FASSUNG 10
+   Sprache auf Spanisch 2 (Kra, W18) umgestellt (einmalig auch für gespeicherte
+   Einstellungen). Schrittziel pro Tag mit Fortschrittsbalken, Balken je Tag in
+   der Wochenleiste, Serie der Tage am Ziel; Ziel in den Einstellungen.
+   Neuer Abschnitt 07 Noten: 16 Fächer, Klassenarbeiten und mündlich je 50 %,
+   Fachschnitt, Gesamtschnitt, nötige Note für den Wunsch-Schnitt.
+   ---------------------------------------------------------
+   NEU IN FASSUNG 9
+   Ferien-Countdown oben im Kopf (Tage und Wochen bis zu den nächsten
+   sächsischen Schulferien, in den Ferien: bis die Schule wieder beginnt).
+   Gesetzliche Feiertage in Sachsen werden berechnet, Ferien stehen in FERIEN
+   (Daten bis Ende 2028, ohne Gewähr). An Feiertagen, in den Ferien und an
+   unterrichtsfreien Tagen entfallen Stundenplan und Schul-Morgenroutine; oben
+   im Tagesplan steht ein grüner Hinweis, bei den Terminen erscheinen die
+   freien Tage automatisch. Donnerstag ohne Schulsport -> nur Dehnen.
+   ---------------------------------------------------------
+     NEU IN FASSUNG 8 (16.11.2026):
    - Neuer Abschnitt 07 Märkte: sechs Kerzencharts (1-Min-Kerzen, letzte
      60 Minuten, gleitender Durchschnitt, letzter Kurs als Linie). Krypto
      (BTC, ETH, SOL) live über Binance ohne Schlüssel; US-Aktien (Apple,
@@ -275,6 +291,7 @@ section{margin-top:22px}
 .tag.lauf{background:var(--ember)}
 .tag.lernen{background:#4DB6A0}
 .tag.nachhilfe{background:#3D7FD6}
+.tag.ferien{background:#6FCF97}
 .entry .txt{min-width:0;flex:1}
 .entry .txt b{font-weight:600;font-size:15px;display:block}
 .entry .txt span{font-size:12.5px;color:var(--ink-dim);display:block;margin-top:1px}
@@ -470,6 +487,11 @@ header::after{
   font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
 }
 .hud b{color:var(--amber-soft);font-weight:600}
+.ferien-cd{margin-top:12px;padding:10px 12px;border:1px solid rgba(111,207,151,.35);border-radius:10px;
+  background:rgba(111,207,151,.07);font-size:13.5px;line-height:1.35}
+.ferien-cd b{color:#8FE0B0;font-weight:700}
+.ferien-cd small{display:block;margin-top:3px;font-size:11.5px;color:var(--ink-dim)}
+.ferien-cd .frei-bald{display:block;margin-top:6px;padding-top:6px;border-top:1px solid rgba(111,207,151,.2);font-size:12.5px}
 
 .sec-head h2{display:flex;align-items:center;gap:10px}
 .sec-head .idx{
@@ -521,6 +543,30 @@ header::after{
 .st-day{cursor:pointer}
 .st-day.is-sel{background:rgba(240,147,43,.14)}
 .st-sum{padding:10px 16px;font-size:12px;color:var(--ink-dim);border-bottom:1px solid var(--line)}
+.st-goal{padding:12px 16px;border-bottom:1px solid var(--line)}
+.st-goal .t{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:8px}
+.st-goal .t b{color:var(--amber-soft)}
+.bar{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--amber);border-radius:6px;transition:width .4s}
+.bar.ok i{background:#6FCF97}
+.st-day .bar{height:4px;margin:7px 8px 0}
+.nt-top{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.nt-top .gesamt{font-size:13px;color:var(--ink-dim)}
+.nt-top .gesamt b{font-size:22px;color:var(--amber-soft);margin-left:6px}
+.nt-top label{font-size:12px;color:var(--ink-faint);display:flex;align-items:center;gap:8px}
+.nt-top select{width:auto;padding:6px 8px;font-size:13px}
+.nt-fach{border-bottom:1px solid var(--line)}
+.nt-head{display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:48px;cursor:pointer}
+.nt-head b{flex:1;font-weight:500;font-size:14.5px}
+.nt-head .avg{font-size:16px;font-weight:600;min-width:44px;text-align:right}
+.nt-head .cnt{font-size:11px;color:var(--ink-faint)}
+.nt-body{padding:0 16px 12px;font-size:13px;color:var(--ink-dim)}
+.nt-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.nt-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;min-height:40px;font-size:13px;cursor:pointer;font-family:inherit}
+.nt-chip.ka{border-color:rgba(240,147,43,.6)}
+.nt-hint{margin-top:2px;color:#8FE0B0}
+.nt-hint.warn{color:var(--ember)}
+.nt-ko{font-size:11px;color:var(--ink-faint);margin-bottom:4px}
 .st-for{font-size:12px;color:var(--ink-faint);margin-bottom:8px;letter-spacing:.04em}
 
 /* ---------- Radar im eigenen Abschnitt ---------- */
@@ -572,6 +618,7 @@ header::after{
   <div class="subline" id="dateline">—</div>
   <div class="clock mono" id="clock">--:--<small>Ortszeit</small></div>
   <div class="hud mono" id="hud" aria-hidden="true"></div>
+  <div class="ferien-cd" id="ferien-cd" hidden></div>
 </header>
 
 <div class="wrap">
@@ -613,6 +660,7 @@ header::after{
       <span><i class="tag lauf"></i>Lauf</span>
       <span><i class="tag termin"></i>Termine</span>
       <span><i class="tag routine"></i>Ablauf</span>
+      <span><i class="tag ferien"></i>Schulfrei</span>
     </div>
   </section>
 
@@ -647,8 +695,9 @@ header::after{
 
   <!-- 06 Schritte -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">06</span>Schritte</h2><span class="meta">Wochenübersicht</span></div>
+    <div class="sec-head"><h2><span class="idx mono">06</span>Schritte</h2><span class="meta" id="st-meta">Wochenübersicht</span></div>
     <div class="card">
+      <div class="st-goal" id="st-goal"></div>
       <div class="st-week" id="st-week"></div>
       <div class="st-sum mono" id="st-sum"></div>
       <form class="add" id="st-form">
@@ -665,9 +714,39 @@ header::after{
     </div>
   </section>
 
-  <!-- 07 Märkte -->
+  <!-- 07 Noten -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">07</span>Märkte</h2><span class="meta mono">1-Min-Kerzen · live</span></div>
+    <div class="sec-head"><h2><span class="idx mono">07</span>Noten</h2><span class="meta" id="nt-meta">Notenrechner</span></div>
+    <div class="card">
+      <div class="nt-top">
+        <div class="gesamt">Gesamtschnitt<b class="mono" id="nt-gesamt">–</b></div>
+        <label>Wunsch-Schnitt
+          <select id="nt-ziel" aria-label="Wunsch-Schnitt pro Fach">
+            <option>1,0</option><option>1,5</option><option>2,0</option><option>2,5</option><option>3,0</option><option>3,5</option><option>4,0</option>
+          </select>
+        </label>
+      </div>
+      <div id="nt-liste"></div>
+      <form class="add" id="nt-form">
+        <div class="row">
+          <select id="nt-fach" aria-label="Fach"></select>
+          <select id="nt-art" aria-label="Art der Note">
+            <option value="ka">Klassenarbeit</option>
+            <option value="mu">Mündlich / Test</option>
+          </select>
+        </div>
+        <div class="row">
+          <input id="nt-note" inputmode="decimal" autocomplete="off" placeholder="Note, z. B. 2, 2+, 3-, 1,5" required>
+          <input id="nt-datum" type="date" aria-label="Datum">
+        </div>
+        <button class="primary" type="submit">Note eintragen</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 08 Märkte -->
+  <section>
+    <div class="sec-head"><h2><span class="idx mono">08</span>Märkte</h2><span class="meta mono">1-Min-Kerzen · live</span></div>
     <div class="card">
       <div class="mk-bar">
         <span class="q"><span class="mk-dot" id="mk-dot-b"></span><span id="mk-st-b">Krypto · Binance</span></span>
@@ -677,9 +756,9 @@ header::after{
     </div>
   </section>
 
-  <!-- 08 Regenradar -->
+  <!-- 09 Regenradar -->
   <section>
-    <div class="sec-head"><h2><span class="idx mono">08</span>Regenradar</h2><span class="meta">letzte ~80 Min</span></div>
+    <div class="sec-head"><h2><span class="idx mono">09</span>Regenradar</h2><span class="meta">letzte ~80 Min</span></div>
     <div class="card">
       <div class="radar-head">
         <span class="radar-title">Niederschlag rund um deinen Standort</span>
@@ -754,6 +833,9 @@ header::after{
         <input id="s-lon" inputmode="decimal" placeholder="12.7400">
       </div>
 
+      <label for="s-stziel">Schrittziel pro Tag</label>
+      <input id="s-stziel" type="number" inputmode="numeric" min="1000" max="50000" step="500" placeholder="10000">
+
       <label for="s-fh">Finnhub-Schlüssel (für US-Aktien, optional)</label>
       <input id="s-fh" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Schlüssel von finnhub.io">
 
@@ -778,7 +860,7 @@ const KEY = "dash.v1";
    zwischen defaults und store hängen. */
 const defaults = () => ({
   name: "Arne",
-  lang: "LA1|Latein|DrKu|W09",
+  lang: "SPA2|Spanisch 2|Kra|W18",
   eth:  "ETH1|Ethik|Pfi|W02",
   spo:  "SPOmat|Sport Matte|Bel|S1",
   prof: "Psp1|Profil Sport|Fre|S2",
@@ -790,7 +872,10 @@ const defaults = () => ({
   checks: {},
   icsSources: [],   // importierte Kalender: [{id,name,at}]
   wx: null,         // letzter Wetterstand, damit offline etwas da ist
-  schritte: {}     // Datum (YYYY-MM-DD) -> {anzahl, zeit}
+  schritte: {},    // Datum (YYYY-MM-DD) -> {anzahl, zeit}
+  stZiel: 10000,   // Schrittziel pro Tag
+  noten: {},       // Fach-Kürzel -> [{n, art:"ka"|"mu", datum}]
+  notenZiel: 2.0   // Wunsch-Schnitt für den Rechner
 });
 let store = load();
 let speicherOk = true;
@@ -806,6 +891,11 @@ function load(){
     if(!s.checks || typeof s.checks !== "object") s.checks = {};
     if(!Array.isArray(s.icsSources)) s.icsSources = [];
     if(!s.schritte || typeof s.schritte !== "object") s.schritte = {};
+    if(!s.noten || typeof s.noten !== "object") s.noten = {};
+    if(!(Number(s.stZiel) > 0)) s.stZiel = 10000;
+    if(!(Number(s.notenZiel) >= 1 && Number(s.notenZiel) <= 6)) s.notenZiel = 2.0;
+    // Einmalig: Sprache auf Spanisch 2 (Kra, W18) umstellen
+    if(!s.v10sprache){ s.lang = "SPA2|Spanisch 2|Kra|W18"; s.v10sprache = true; }
     return s;
   }catch(e){ return defaults(); }
 }
@@ -1131,12 +1221,134 @@ const ROUTINE = {
    automatisch jedes Fach abgedeckt — auch wenn die Kurswahl
    oder der Stundenplan später geändert wird.
    ========================================================= */
+/* =========================================================
+   Ferien und Feiertage (Sachsen, allgemeinbildende Schulen)
+   Quelle der Ferien: Sächsisches Staatsministerium für Kultus,
+   zusammengetragen aus Kalenderpedia und Profiling-Institut —
+   ohne Gewähr, verbindlich ist die Schule. Stand der Daten bis
+   Ende 2028; danach gibt es keinen Countdown mehr, bis neue
+   Termine eingetragen sind. Format: [Name, erster Tag, letzter Tag]
+   ========================================================= */
+const FERIEN = [
+  ["Sommerferien",     "2026-07-04","2026-08-14"],
+  ["Herbstferien",     "2026-10-12","2026-10-24"],
+  ["Weihnachtsferien", "2026-12-23","2027-01-02"],
+  ["Winterferien",     "2027-02-08","2027-02-20"],
+  ["Osterferien",      "2027-03-26","2027-04-03"],
+  ["Pfingstferien",    "2027-05-15","2027-05-18"],
+  ["Sommerferien",     "2027-07-10","2027-08-20"],
+  ["Herbstferien",     "2027-10-11","2027-10-23"],
+  ["Weihnachtsferien", "2027-12-23","2028-01-01"],
+  ["Winterferien",     "2028-02-14","2028-02-26"],
+  ["Osterferien",      "2028-04-14","2028-04-22"],
+  ["Sommerferien",     "2028-07-22","2028-09-01"],
+  ["Herbstferien",     "2028-10-23","2028-11-03"],
+  ["Weihnachtsferien", "2028-12-23","2029-01-03"]
+];
+/* Einzelne unterrichtsfreie Tage (Brückentage), landesweit */
+const UNTERRICHTSFREI = {
+  "2027-05-07":"Unterrichtsfreier Tag",
+  "2028-05-26":"Unterrichtsfreier Tag"
+};
+
+/* Ostersonntag (Gauß, gregorianisch) */
+function ostern(y){
+  const a=y%19, b=Math.floor(y/100), c=y%100, d=Math.floor(b/4), e=b%4;
+  const f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3);
+  const h=(19*a+b-d-g+15)%30, i=Math.floor(c/4), k=c%4;
+  const l=(32+2*e+2*i-h-k)%7, m=Math.floor((a+11*h+22*l)/451);
+  const mon=Math.floor((h+l-7*m+114)/31), tag=((h+l-7*m+114)%31)+1;
+  return new Date(y, mon-1, tag, 12);
+}
+const FEIERTAG_CACHE = {};
+/* Gesetzliche Feiertage in Sachsen: Datum -> Name */
+function feiertage(y){
+  if(FEIERTAG_CACHE[y]) return FEIERTAG_CACHE[y];
+  const o = ostern(y), m = {};
+  const put = (d,n)=>{ m[iso(d)] = n; };
+  put(new Date(y,0,1,12), "Neujahr");
+  put(addDays(o,-2), "Karfreitag");
+  put(addDays(o,1),  "Ostermontag");
+  put(new Date(y,4,1,12), "Tag der Arbeit");
+  put(addDays(o,39), "Christi Himmelfahrt");
+  put(addDays(o,50), "Pfingstmontag");
+  put(new Date(y,9,3,12),  "Tag der Deutschen Einheit");
+  put(new Date(y,9,31,12), "Reformationstag");
+  // Buß- und Bettag: der Mittwoch vor dem 23. November
+  const n23 = new Date(y,10,23,12);
+  put(addDays(n23, -(((n23.getDay()+4)%7) || 7)), "Buß- und Bettag");
+  put(new Date(y,11,25,12), "1. Weihnachtstag");
+  put(new Date(y,11,26,12), "2. Weihnachtstag");
+  return FEIERTAG_CACHE[y] = m;
+}
+/* Ist an diesem Kalendertag frei? -> {art, name} oder null.
+   art: "feiertag" | "frei" (unterrichtsfrei) | "ferien" */
+function freiTag(date){
+  const k = iso(date);
+  const f = feiertage(date.getFullYear())[k];
+  if(f) return {art:"feiertag", name:f};
+  if(UNTERRICHTSFREI[k]) return {art:"frei", name:UNTERRICHTSFREI[k]};
+  for(const fe of FERIEN){ if(k>=fe[1] && k<=fe[2]) return {art:"ferien", name:fe[0]}; }
+  return null;
+}
+function ferienAm(date){
+  const k = iso(date);
+  return FERIEN.find(fe=> k>=fe[1] && k<=fe[2]) || null;
+}
+/* Schulfrei heißt: Montag bis Freitag UND Feiertag/Ferien/unterrichtsfrei */
+function schulfrei(date){
+  const dow = date.getDay();
+  if(dow<1 || dow>5) return null;
+  return freiTag(date);
+}
+function tageZwischen(a,b){
+  return Math.round((Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()) - Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())) / 864e5);
+}
+function datumKurz(d){ return DAYS3[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)+"."; }
+
 function naechsterSchultag(date){
-  for(let i=1;i<=7;i++){
+  for(let i=1;i<=60;i++){
     const d = addDays(date,i);
-    if(d.getDay()>=1 && d.getDay()<=5) return d;
+    if(d.getDay()>=1 && d.getDay()<=5 && !freiTag(d)) return d;
   }
   return addDays(date,1);
+}
+/* Letzter Schultag vor einem Datum (für „letzter Schultag vor den Ferien“) */
+function letzterSchultagVor(date){
+  for(let i=1;i<=60;i++){
+    const d = addDays(date,-i);
+    if(d.getDay()>=1 && d.getDay()<=5 && !freiTag(d)) return d;
+  }
+  return addDays(date,-1);
+}
+
+/* Tagesablauf an einem schulfreien Wochentag: wie am Samstag, ohne Schule.
+   Lernblöcke für „den nächsten Schultag“ nur, wenn der in den nächsten
+   Tagen kommt. Nachhilfe bleibt stehen, falls sie trotzdem stattfindet. */
+function routineFuer(date){
+  const dow = date.getDay();
+  if(!schulfrei(date)) return ROUTINE[dow] || [];
+  const gap = tageZwischen(date, naechsterSchultag(date));
+  // Vormittag wie am Samstag, ohne Lernblock (Lernen kommt vom eigenen Tag)
+  const vormittag = (ROUTINE[6]||[]).filter(r=> minutes(r.von||r.t) < 14*60 && r.kind!=="lernen");
+  // Ab Nachmittag der normale Ablauf des Tages, aber ohne Bus und Schul-Mittagessen
+  const rest = (ROUTINE[dow]||[])
+    .filter(r=> minutes(r.von||r.t) >= 15*60 && !/Zu Hause|Mittagessen/.test(r.n))
+    .filter(r=> !(r.kind==="lernen" && r.faecher && gap>3))
+    .map(r=> r.kind==="nachhilfe" ? Object.assign({}, r, {n:"Nachhilfe (falls sie stattfindet)"}) : r);
+  return vormittag.concat(rest);
+}
+/* Donnerstag ohne Schulsport: nur noch locker bewegen */
+function trainingFuer(date){
+  const dow = date.getDay();
+  const tr = TRAINING[dow];
+  if(dow===4 && schulfrei(date)){
+    return Object.assign({}, tr, {
+      titel:"Ausrollen & Dehnen", dauer:"ca. 30 Min",
+      hinweis:"Heute kein Schulsport, weil schulfrei. Locker ausrollen und dehnen."
+    });
+  }
+  return tr;
 }
 
 /* Sportstunden fliegen raus — dafür lernt man nicht am Schreibtisch. */
@@ -1493,8 +1705,24 @@ function zeigeIcsQuellen(){
    ========================================================= */
 function tagesplan(date){
   const dow = date.getDay();
-  const istSchultag = dow>=1 && dow<=5;
+  const frei = schulfrei(date);
+  const istSchultag = dow>=1 && dow<=5 && !frei;
   const items = [];
+
+  // An Feiertagen und in den Ferien steht oben ein Hinweis, keine Schulstunden
+  const fd = freiTag(date);
+  if(fd && (dow>=1 && dow<=5 || fd.art==="feiertag")){
+    const wieder = naechsterSchultag(date);
+    items.push({
+      kind:"ferien", start:-2, dauer:0,
+      titel: fd.art==="feiertag" ? "Feiertag: "+fd.name
+           : fd.art==="ferien"   ? fd.name+" · schulfrei"
+           : fd.name+" · schulfrei",
+      detail: dow>=1 && dow<=5
+        ? "Keine Schule. Weiter geht es "+datumKurz(wieder)
+        : "Wochenende, dazu gesetzlicher Feiertag"
+    });
+  }
 
   if(istSchultag){
     items.push(...schultag(dow));
@@ -1505,7 +1733,7 @@ function tagesplan(date){
 
   // Nachmittag und Abend: Heimkunft, Lernen, Nachhilfe, Mahlzeiten
   const lern = lernFaecher(date);
-  (ROUTINE[dow] || []).forEach(r=>{
+  routineFuer(date).forEach(r=>{
     const kind = r.kind || "routine";
     const start = minutes(r.von || r.t);
     const dauer = (r.von && r.bis) ? Math.max(0, minutes(r.bis)-minutes(r.von)) : 0;
@@ -1529,7 +1757,7 @@ function tagesplan(date){
     items.push({kind:kind, start:start, dauer:dauer, titel:titel, detail:detail});
   });
 
-  const tr = TRAINING[dow];
+  const tr = trainingFuer(date);
   if(tr && tr.uebungen.length){
     items.push({
       kind: dow===6 ? "lauf" : "training",
@@ -1614,8 +1842,10 @@ function renderTimeline(){
     else if(slots.length){ el.appendChild(line); }
   }
 
+  const fdm = freiTag(cursor);
   document.getElementById("plan-meta").textContent =
-    items.filter(i=>i.kind==="schule").length ? "Schultag" : "schulfrei";
+    items.filter(i=>i.kind==="schule").length ? "Schultag"
+    : (fdm && cursor.getDay()>=1 && cursor.getDay()<=5) ? "schulfrei · "+fdm.name : "schulfrei";
 }
 
 /* =========================================================
@@ -1624,7 +1854,7 @@ function renderTimeline(){
 function renderTraining(){
   const el = document.getElementById("training");
   const dow = cursor.getDay();
-  const tr = TRAINING[dow];
+  const tr = trainingFuer(cursor);
   const key = iso(cursor);
 
   let html = '<div class="tr-head"><b></b><span></span></div>';
@@ -1673,7 +1903,7 @@ function renderLernen(){
   const el = document.getElementById("lernplan");
   const key = iso(cursor);
   const lern = lernFaecher(cursor);
-  const bloecke = (ROUTINE[cursor.getDay()] || []).filter(r=>r.kind === "lernen" && r.von && r.bis);
+  const bloecke = routineFuer(cursor).filter(r=>r.kind === "lernen" && r.von && r.bis);
   const minuten = bloecke.reduce((s,r)=> s + (minutes(r.bis)-minutes(r.von)), 0);
 
   el.innerHTML = '<div class="tr-head"><b></b><span></span></div>';
@@ -1723,8 +1953,26 @@ function renderEvents(){
   const el = document.getElementById("events");
   const heute = iso(new Date());
   const grenze = iso(addDays(new Date(),14));
+  // Feiertage und Ferienbeginn der nächsten 14 Tage erscheinen automatisch
+  const auto = [];
+  let letzteFerien = null;
+  for(let i=0;i<=14;i++){
+    const d = addDays(new Date(),i);
+    const fe = ferienAm(d), dow = d.getDay();
+    if(fe && fe!==letzteFerien){
+      auto.push({id:"auto-f-"+iso(d), date:iso(d), time:"", title:(i===0?"":"Beginn: ")+fe[0],
+                 place:"bis "+parseInt(fe[2].slice(8),10)+"."+parseInt(fe[2].slice(5,7),10)+".", auto:true});
+    }
+    letzteFerien = fe;
+    const ft = feiertage(d.getFullYear())[iso(d)] || UNTERRICHTSFREI[iso(d)];
+    if(ft){
+      auto.push({id:"auto-"+iso(d), date:iso(d), time:"", title:ft,
+                 place: dow>=1 && dow<=5 && !fe ? "Schulfrei" : "Feiertag", auto:true});
+    }
+  }
   const liste = store.events
     .filter(e=> e.date>=heute && e.date<=grenze)
+    .concat(auto)
     .sort((a,b)=> (a.date+(a.time||"99:99")).localeCompare(b.date+(b.time||"99:99")));
 
   if(!liste.length){
@@ -1744,16 +1992,18 @@ function renderEvents(){
       DAYS3[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)+".<br>"+(e.time || "ganztägig");
     const b = row.querySelector(".txt b");
     b.textContent = e.title;
-    if(e.src){
+    if(e.src || e.auto){
       const tag = document.createElement("span");
       tag.className = "src";
-      tag.textContent = "Kalender";
+      tag.textContent = e.auto ? "Schulfrei" : "Kalender";
       b.appendChild(tag);
     }
+    if(e.auto) row.querySelector(".del").remove();
     // ">" nötig, sonst trifft die Auswahl das Kennzeichen im <b>
     row.querySelector(".txt > span").textContent =
       [e.time && e.endTime ? "bis "+e.endTime : "", e.place].filter(Boolean).join(" · ");
-    row.querySelector(".del").addEventListener("click", ()=>{
+    const delBtn = row.querySelector(".del");
+    if(delBtn) delBtn.addEventListener("click", ()=>{
       if(e.src && !confirm("Diesen importierten Termin löschen? Beim nächsten Import derselben Datei kommt er wieder.")) return;
       store.events = store.events.filter(x=>x.id!==e.id);
       save(); renderEvents(); renderTimeline();
@@ -2080,6 +2330,7 @@ function renderSchritteWoche(){
   if(!wk) return;
   wk.innerHTML = "";
   let summe = 0, tage = 0;
+  const ziel = Number(store.stZiel) || 10000;
   for(let i=6; i>=0; i--){
     const d = addDays(new Date(), -i);
     const key = iso(d);
@@ -2092,9 +2343,27 @@ function renderSchritteWoche(){
     col.innerHTML =
       '<div class="d">'+(istHeute?"Heute":DAYS3[d.getDay()])+'</div>'+
       '<div class="n mono">'+(n !== null ? n.toLocaleString("de-DE") : "–")+'</div>'+
-      '<div class="z mono">'+(n !== null && eintrag.zeit ? eintrag.zeit+" Uhr" : "")+'</div>';
+      '<div class="z mono">'+(n !== null && eintrag.zeit ? eintrag.zeit+" Uhr" : "")+'</div>'+
+      '<div class="bar'+(n !== null && n>=ziel?' ok':'')+'"><i style="width:'+(n!==null?Math.min(100,Math.round(n/ziel*100)):0)+'%"></i></div>';
     col.addEventListener("click", ()=>{ stWahl = key; schritteFormFuellen(); renderSchritteWoche(); });
     wk.appendChild(col);
+  }
+  // Tagesziel: Fortschrittsbalken für heute
+  const g = document.getElementById("st-goal");
+  if(g){
+    const heuteN = stAnzahl(store.schritte[iso(new Date())]) || 0;
+    const pr = Math.min(100, Math.round(heuteN/ziel*100));
+    const rest = Math.max(0, ziel-heuteN);
+    g.innerHTML = '<div class="t"><span>Heute <b class="mono"></b></span><span class="mono r"></span></div><div class="bar'+(heuteN>=ziel?' ok':'')+'"><i style="width:'+pr+'%"></i></div>';
+    g.querySelector("b").textContent = heuteN.toLocaleString("de-DE")+" / "+ziel.toLocaleString("de-DE");
+    g.querySelector(".r").textContent = heuteN>=ziel ? "Ziel geschafft ✓" : "noch "+rest.toLocaleString("de-DE")+" · "+pr+" %";
+    let serie = 0;
+    for(let i=0;i<60;i++){
+      const n = stAnzahl(store.schritte[iso(addDays(new Date(),-i))]);
+      if(n!==null && n>=ziel) serie++; else if(i===0) continue; else break;
+    }
+    const meta = document.getElementById("st-meta");
+    if(meta) meta.textContent = serie>=2 ? serie+" Tage in Folge am Ziel" : "Wochenübersicht";
   }
   const sum = document.getElementById("st-sum");
   if(sum) sum.textContent = tage
@@ -2476,6 +2745,62 @@ function renderHeader(){
     '<span>KW <b>'+kw+'</b></span>'+
     '<span>Tag <b>'+jahresTag+'</b></span>'+
     '<span>Woche <b>'+Math.round(wochenMin/100.8)+'%</b></span>';
+  renderFerienCountdown();
+}
+function pl(n,e,m){ return n+" "+(n===1?e:m); }
+function dauerText(tage){
+  if(tage<7) return pl(tage,"Tag","Tage");
+  const w=Math.floor(tage/7), r=tage%7;
+  return pl(w,"Woche","Wochen")+(r?" und "+pl(r,"Tag","Tage"):"");
+}
+/* Countdown bis zu den nächsten Ferien (oder bis Schule wieder beginnt) */
+function renderFerienCountdown(){
+  const el = document.getElementById("ferien-cd");
+  if(!el) return;
+  const heute = new Date(); heute.setHours(12,0,0,0);
+  const k = iso(heute);
+  const dran = FERIEN.find(f=> k>=f[1] && k<=f[2]);
+  let html = "", zeile2 = "";
+
+  if(dran){
+    const wieder = naechsterSchultag(heute);
+    const t = tageZwischen(heute, wieder);
+    html = "Gerade <b>"+dran[0]+"</b> · Schule wieder in <b>"+pl(t,"Tag","Tagen")+"</b>";
+    zeile2 = "Erster Schultag: "+datumKurz(wieder)+" "+wieder.getFullYear();
+  }else{
+    const next = FERIEN.find(f=> f[1]>k);
+    if(next){
+      const start = new Date(next[1]+"T12:00:00");
+      const t = tageZwischen(heute, start);
+      const letzter = letzterSchultagVor(start);
+      const tl = tageZwischen(heute, letzter);
+      if(t===1) html = "<b>Morgen</b> beginnen die "+next[0];
+      else html = "Noch <b>"+pl(t,"Tag","Tage")+"</b>"+(t>=7 ? " ("+dauerText(t)+")" : "")+" bis zu den <b>"+next[0]+"</b>";
+      zeile2 = "Ferien "+start.getDate()+"."+(start.getMonth()+1)+"."
+        +" – "+parseInt(next[2].slice(8),10)+"."+parseInt(next[2].slice(5,7),10)+"."
+        +" · letzter Schultag: "+datumKurz(letzter)
+        +(tl===0 ? " (heute)" : tl===1 ? " (morgen)" : "");
+    }
+  }
+  // Nächster einzelner freier Schultag (Feiertag / unterrichtsfrei), nicht in Ferien
+  let frei = "";
+  for(let i=0;i<=45;i++){
+    const d = addDays(heute,i);
+    if(d.getDay()<1 || d.getDay()>5) continue;
+    const f = freiTag(d);
+    if(f && f.art!=="ferien" && !ferienAm(d)){
+      frei = (i===0 ? "Heute schulfrei" : i===1 ? "Morgen schulfrei" : "Nächster freier Schultag: "+datumKurz(d)+" (in "+pl(i,"Tag","Tagen")+")")
+        +" · "+f.name;
+      break;
+    }
+  }
+  if(!html && !frei){ el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = (html ? "<div>"+html+"</div>" : "")
+    + (zeile2 ? "<small></small>" : "")
+    + (frei ? '<span class="frei-bald"></span>' : "");
+  if(zeile2) el.querySelector("small").textContent = zeile2;
+  if(frei) el.querySelector(".frei-bald").textContent = frei;
 }
 function renderClock(){
   const n = new Date();
@@ -2571,6 +2896,128 @@ window.addEventListener("focus", pruefeTag);
 window.addEventListener("pageshow", pruefeTag);
 window.addEventListener("online", ()=>ladeWetter(true));
 
+
+/* =========================================================
+   Noten
+   Pro Fach: Klassenarbeiten (KA) und mündliche Noten/Tests (Mü).
+   Beide Gruppen zählen je 50 %. Gibt es nur eine Gruppe, zählt sie
+   allein. Notenrechner: zeigt, welche Note in der nächsten
+   Klassenarbeit nötig ist, um den Wunsch-Schnitt zu erreichen.
+   Alles bleibt nur auf diesem Gerät.
+   ========================================================= */
+const NOTEN_FAECHER = [
+  ["DE","Deutsch"],["MA","Mathematik"],["EN","Englisch"],["SPA","Spanisch"],
+  ["BIO","Biologie"],["CH","Chemie"],["PH","Physik"],["GE","Geschichte"],
+  ["GEO","Geografie"],["GRW","Gemeinschaftskunde / Recht / Wirtschaft"],
+  ["KU","Kunst"],["MU","Musik"],["SPO","Sport"],["INF","Informatik"],
+  ["ETH","Ethik"],["PROF","Sportliches Profil"]
+];
+let ntOffen = null;
+
+/* "2", "2+", "3-", "1,5", "2.25" -> Zahl 1..6 oder null. + = -0,25, - = +0,25 */
+function parseNote(t){
+  const m = String(t).trim().replace(",",".").match(/^([1-6](?:\.\d+)?)\s*([+\-−–]?)$/);
+  if(!m) return null;
+  let v = parseFloat(m[1]);
+  if(m[2]==="+") v -= 0.25; else if(m[2]) v += 0.25;
+  return (v>=1 && v<=6) ? Math.round(v*100)/100 : null;
+}
+const fmtN = x => (Math.round(x*100)/100).toFixed(2).replace(".",",");
+const mittel = a => a.length ? a.reduce((s,x)=>s+x.n,0)/a.length : null;
+
+function fachSchnitt(liste){
+  const ka = liste.filter(x=>x.art==="ka"), mu = liste.filter(x=>x.art!=="ka");
+  const k = mittel(ka), m = mittel(mu);
+  if(k===null && m===null) return {avg:null,ka,mu,k,m};
+  const avg = (k===null) ? m : (m===null) ? k : (k+m)/2;
+  return {avg,ka,mu,k,m};
+}
+/* Note, die in der nächsten KA nötig ist */
+function brauchKA(r, ziel){
+  const sum = r.ka.reduce((s,x)=>s+x.n,0), n = r.ka.length;
+  const kZiel = (r.m===null) ? ziel : 2*ziel - r.m;   // nötiger KA-Schnitt
+  const x = kZiel*(n+1) - sum;
+  return x;
+}
+
+function renderNoten(){
+  const box = document.getElementById("nt-liste");
+  if(!box) return;
+  const ziel = Number(store.notenZiel) || 2;
+  box.innerHTML = "";
+  const schnitte = [];
+  NOTEN_FAECHER.forEach(([id,name])=>{
+    const liste = (store.noten[id]||[]).slice().sort((a,b)=>(a.datum||"").localeCompare(b.datum||""));
+    const r = fachSchnitt(liste);
+    if(r.avg!==null) schnitte.push(r.avg);
+    const wrap = document.createElement("div");
+    wrap.className = "nt-fach";
+    wrap.innerHTML = '<div class="nt-head" role="button" tabindex="0"><b></b><span class="cnt"></span><span class="avg mono"></span></div><div class="nt-body" hidden></div>';
+    wrap.querySelector("b").textContent = name;
+    wrap.querySelector(".cnt").textContent = liste.length ? liste.length+(liste.length===1?" Note":" Noten") : "";
+    wrap.querySelector(".avg").textContent = r.avg!==null ? fmtN(r.avg) : "–";
+    const body = wrap.querySelector(".nt-body");
+    if(ntOffen===id){
+      body.hidden = false;
+      body.innerHTML = '<div class="nt-ko"></div><div class="nt-chips"></div><div class="nt-hint"></div>';
+      body.querySelector(".nt-ko").textContent =
+        "Klassenarbeiten Ø "+(r.k!==null?fmtN(r.k):"–")+" · Mündlich/Tests Ø "+(r.m!==null?fmtN(r.m):"–")+" · beide 50 %";
+      const chips = body.querySelector(".nt-chips");
+      liste.forEach(x=>{
+        const c = document.createElement("button");
+        c.type = "button"; c.className = "nt-chip "+(x.art==="ka"?"ka":"");
+        const d = x.datum ? x.datum.slice(8)+"."+x.datum.slice(5,7)+"." : "";
+        c.textContent = (x.art==="ka"?"KA ":"Mü ")+fmtN(x.n)+(d?" · "+d:"");
+        c.setAttribute("aria-label","Note löschen");
+        c.addEventListener("click", e=>{
+          e.stopPropagation();
+          if(!confirm("Diese Note löschen?")) return;
+          store.noten[id] = (store.noten[id]||[]).filter(y=>y!==x);
+          save(); renderNoten();
+        });
+        chips.appendChild(c);
+      });
+      if(!liste.length) chips.textContent = "Noch keine Note eingetragen.";
+      const h = body.querySelector(".nt-hint");
+      if(r.avg!==null || true){
+        const x = brauchKA(r, ziel);
+        if(r.ka.length===0 && r.m===null){ h.textContent = ""; }
+        else if(x<=1){ h.textContent = "Wunsch-Schnitt "+fmtN(ziel)+": mit einer 1 in der nächsten KA machbar, schon sicher geht es nicht."; h.classList.add("warn"); }
+        else if(x>6){ h.textContent = "Wunsch-Schnitt "+fmtN(ziel)+" ist mit der nächsten Klassenarbeit nicht mehr erreichbar."; h.classList.add("warn"); }
+        else h.textContent = "Für Wunsch-Schnitt "+fmtN(ziel)+": in der nächsten Klassenarbeit mindestens eine "+fmtN(x)+" schreiben.";
+      }
+    }
+    wrap.querySelector(".nt-head").addEventListener("click", ()=>{ ntOffen = (ntOffen===id?null:id); renderNoten(); });
+    box.appendChild(wrap);
+  });
+  const ges = schnitte.length ? schnitte.reduce((a,b)=>a+b,0)/schnitte.length : null;
+  document.getElementById("nt-gesamt").textContent = ges!==null ? fmtN(ges) : "–";
+  document.getElementById("nt-meta").textContent = schnitte.length ? schnitte.length+" von "+NOTEN_FAECHER.length+" Fächern" : "Notenrechner";
+}
+
+(function notenVerdrahten(){
+  const fach = document.getElementById("nt-fach");
+  const datum = document.getElementById("nt-datum");
+  const ziel = document.getElementById("nt-ziel");
+  if(!fach) return;
+  NOTEN_FAECHER.forEach(([id,name])=>{ const o=document.createElement("option"); o.value=id; o.textContent=name; fach.appendChild(o); });
+  datum.value = iso(new Date());
+  ziel.value = fmtN(store.notenZiel).slice(0,3);
+  ziel.addEventListener("change", ()=>{ store.notenZiel = parseFloat(ziel.value.replace(",","."))||2; save(); renderNoten(); });
+  document.getElementById("nt-form").addEventListener("submit", e=>{
+    e.preventDefault();
+    const n = parseNote(document.getElementById("nt-note").value);
+    if(n===null){ melde("Bitte eine Note von 1 bis 6 eingeben, z. B. 2, 2+ oder 3-.", 3500); return; }
+    const id = fach.value;
+    (store.noten[id] = store.noten[id] || []).push({n, art:document.getElementById("nt-art").value, datum:datum.value||iso(new Date())});
+    document.getElementById("nt-note").value = "";
+    ntOffen = id;
+    save(); renderNoten();
+    melde("Note eingetragen.", 1800);
+  });
+  renderNoten();
+})();
+
 /* =========================================================
    Einstellungen
    ========================================================= */
@@ -2593,6 +3040,15 @@ Object.entries(felder).forEach(([id,key])=>{
     else if(key==="fhKey"){ fTry = 0; fStart(); }
     else renderAll();
   });
+});
+
+const stZielEl = document.getElementById("s-stziel");
+stZielEl.value = store.stZiel;
+stZielEl.addEventListener("change", ()=>{
+  const v = parseInt(stZielEl.value,10);
+  store.stZiel = (v>=1000 && v<=50000) ? v : 10000;
+  stZielEl.value = store.stZiel;
+  save(); renderSchritteWoche();
 });
 
 /* =========================================================
